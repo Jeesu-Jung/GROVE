@@ -1,0 +1,81 @@
+import React from 'react';
+import { ProgressIndicator } from './ProgressIndicator';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useAppStore } from '../../store/useAppStore';
+import { Database, Moon, Sun } from 'lucide-react';
+
+interface LayoutProps {
+  children: React.ReactNode;
+}
+
+export const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const { reset } = useAppStore();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const currentPage = React.useMemo(() => {
+    if (location.pathname.startsWith('/sampling')) return 4;
+    if (location.pathname.startsWith('/domain-analysis')) return 3;
+    if (location.pathname.startsWith('/statistics')) return 2;
+    return 1;
+  }, [location.pathname]);
+  const [darkMode, setDarkMode] = React.useState(false);
+
+  React.useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+
+  return (
+    <div className={`min-h-screen transition-colors duration-300 ${
+      darkMode ? 'dark bg-gray-900' : 'bg-gradient-to-br from-blue-50 via-white to-purple-50'
+    }`}>
+      {/* Header */}
+      <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg">
+              <Database className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                Dataset Analyzer
+              </h1>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Instruction dataset analysis & sampling
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              {darkMode ? (
+                <Sun className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              ) : (
+                <Moon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              )}
+            </button>
+            <button
+              onClick={() => { reset(); navigate('/'); }}
+              className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Progress Indicator */}
+      <ProgressIndicator currentStep={currentPage} />
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-6 pb-12">
+        {children}
+      </main>
+    </div>
+  );
+};
