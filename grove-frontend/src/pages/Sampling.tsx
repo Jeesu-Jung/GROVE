@@ -135,8 +135,9 @@ export const Sampling: React.FC = () => {
   const openModal = (a: InstructionAssignment) => {
     if (!dataset || !domainAnalysis) return;
     const domainName = a.domainName;
+    const taskName = a.taskName || 'Unknown';
     const items = (domainAnalysis.assignments || [])
-      .filter(x => x.domainName === domainName)
+      .filter(x => x.domainName === domainName && (x.taskName || 'Unknown') === taskName)
       .map(x => ({ assignment: x, row: dataset.data[x.datasetIndex] }))
       .filter(x => !!x.row);
     setModalDomain(domainName);
@@ -492,7 +493,7 @@ export const Sampling: React.FC = () => {
 
       {/* Task → Domain → Raw Tree */}
       {dataset && domainAnalysis && (
-        <Card title="Task Tree" description="Root → Tasks → Domains → Raw data">
+        <Card title="Task Tree" description="Root → Tasks → Domains">
           <AssignmentTree
             assignments={assignments}
             dataset={dataset}

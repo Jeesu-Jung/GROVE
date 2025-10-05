@@ -49,18 +49,15 @@ export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dat
       children: Object.entries(domainMap).map(([domainName, list]) => ({
         name: domainName,
         attributes: { count: list.length },
-        children: list.map((a) => ({
-          name: 'raw data',
-          attributes: { index: a.datasetIndex, assignmentId: a.id },
-          __payload: { assignment: a, row: dataset.data[a.datasetIndex] },
-        })),
+        // Attach a representative assignment so the parent can open the modal by domain
+        __payload: { assignment: list[0] },
       })),
     })),
   };
 
   const handleNodeClick = (nodeDatum: any) => {
     const payload = (nodeDatum as any).__payload as TreeNode['__payload'];
-    if (payload?.assignment && payload?.row && onLeafClick) {
+    if (payload?.assignment && onLeafClick) {
       onLeafClick(payload.assignment, payload.row);
     }
   };
@@ -87,9 +84,9 @@ export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dat
         renderCustomNodeElement={({ nodeDatum }) => {
           const isLeaf = !(nodeDatum.children && nodeDatum.children.length);
           const payload = (nodeDatum as any).__payload as TreeNode['__payload'];
-          const clickable = isLeaf && payload?.assignment && payload?.row && onLeafClick;
+          const clickable = Boolean(payload?.assignment && onLeafClick);
           const handleClick = () => {
-            if (clickable && payload?.assignment && payload?.row && onLeafClick) {
+            if (clickable && payload?.assignment && onLeafClick) {
               onLeafClick(payload.assignment, payload.row);
             }
           };
@@ -109,7 +106,7 @@ export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dat
               >
                 {nodeDatum.name}
               </text>
-              {nodeDatum.attributes?.count !== undefined && !isLeaf && (
+              {nodeDatum.attributes?.count !== undefined && (
                 <text
                   x={24}
                   y={12}
