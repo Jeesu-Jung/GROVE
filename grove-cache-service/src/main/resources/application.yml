@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: grove-cache-service
+  data:
+    redis:
+      host: localhost
+      port: 6379
