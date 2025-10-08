@@ -1,0 +1,14 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: grove-task-mixture-service
+
+milvus:
+  host: localhost
+  port: 19530
+  database: default
+  collection-name:
+    instruction-alpaca: instruction_alpaca
+    seed-sentence: seed_sentence
