@@ -1,0 +1,53 @@
+[
+    {
+        "type": "Programming",
+        "sentences": [
+            "write a few lines of code to print \"hello world\"",
+            "develop a strategy for optimizing web content",
+            "list three use cases for gpt-3.",
+            "create a function to to check if a given number is an armstrong number or not.",
+            "explain what the following machine learning algorithm does. INPUT: k-means clustering",
+            "generate a correct sql query to extract the following data. INPUT: retrieve the names, ages and cities of customers who are over 40 years old."
+        ]
+    },
+    {
+        "type": "Math solution",
+        "sentences": [
+            "what is the tenth term in the geometric sequence 9,3,1,1/3, …?",
+            "explain the concept of vector multiplication",
+            "compare and contrast the mass of the earth with the mass of mars. INPUT: earth mass: 5.972 × 1024 kg \nmars mass: 6.39 × 1023 kg",
+            "convert the phrase “1/2” into a fraction.",
+            "compute the result of 3 ^ 8."
+        ]
+    },
+    {
+        "type": "History QA",
+        "sentences": [
+            "When did the Second World War end?",
+            "summarize the history of the peloponnesian war in no more than 100 words.",
+            "list the states in the united states of america in alphabetical order.",
+            "answer the question based on common sense and your knowledge. INPUT: what is the name of the capital city of peru?",
+            "write a biography of bill gates"
+        ]
+    },
+    {
+        "type": "Creative Writing",
+        "sentences": [
+            "convert the following text into an acrostic poem. INPUT: time",
+            "generate a children's story with the following title: the magic violin.",
+            "give me a metaphor for a good relationship.",
+            "take a joke and explain it in one sentence. INPUT: why don’t scientists trust atoms?\nbecause they make up everything.",
+            "categorize the following text into one of the genres: comedy, thriller, romance, or drama. INPUT: two kids from very different backgrounds meet in summer camp and form an unlikely friendship."
+        ]
+    },
+    {
+        "type": "Grammar Correction",
+        "sentences": [
+            "format the input sentence by adding punctuation. INPUT: i love to eat pizza",
+            "generate a sentence using the following words in the correct order. INPUT: house on fire",
+            "rewrite the sentence using antonyms to two of the adjectives. INPUT: the students found the exam relatively easy.",
+            "Rearrange the phrase such that it is in an alphabetical order",
+            "edit the following sentence in the most natural way to make it active voice: INPUT: the media campaign was led by the team."
+        ]
+    }
+]
