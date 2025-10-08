@@ -20,7 +20,7 @@ class AlpacaService(
         "History QA" to bestModel.history
     )
 
-    fun searchAlpacaInstruction(searchRequest: AlpacaDto.SearchRequest): List<Instruction> {
+    fun searchAlpacaInstruction(searchRequest: AlpacaDto.SearchRequest): Pair<List<Instruction>, BestModel> {
         val bestModel = bestModelService.getTaskMixtureBestModel(
             model = searchRequest.model,
             dataSize = searchRequest.dataSize,
@@ -37,6 +37,6 @@ class AlpacaService(
                 instructionList.addAll(instructionRepository.searchByVector(vector, count))
             }
 
-        return instructionList.toList()
+        return Pair(instructionList.toList(), bestModel)
     }
 }

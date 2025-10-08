@@ -17,11 +17,11 @@ class AlpacaController(
     private val mapper: AlpacaMapper
 ) {
     @GetMapping("/alpaca/search")
-    fun search(searchRequest: AlpacaDto.SearchRequest): ResponseEntity<ApiResponse<List<AlpacaDto.SearchResponse>>> {
-        val instructions = service.searchAlpacaInstruction(searchRequest)
+    fun search(searchRequest: AlpacaDto.SearchRequest): ResponseEntity<ApiResponse<AlpacaDto.SearchResponse>> {
+        val (instructions, bestModel) = service.searchAlpacaInstruction(searchRequest)
         return ResponseEntity.ok(
             ApiResponse.success(
-                instructions.map { mapper.toSearchResponse(it) },
+                mapper.toSearchResponse(instructions, bestModel),
                 meta = Meta(totalCount = instructions.size)
             )
         )
