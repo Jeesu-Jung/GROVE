@@ -1,0 +1,73 @@
+model,data_size,task,best_model,programming,math,creative writing,grammar,history
+mistral,250,programming,train_math-50_creative writing-50_grammar-150.json,0,50,50,150,0
+mistral,250,math,train_programming-50_math-50_creative writing-50_grammar-100.json,50,50,50,100,0
+mistral,250,history,train_history-50_creative writing-100_grammar-100.json,0,0,100,100,50
+mistral,250,grammar,train_programming-50_creative writing-200.json,50,0,200,0,0
+mistral,250,creative writing,train_history-100_grammar-150.json,0,0,0,150,100
+llama,250,programming,train_history-250.json,0,0,0,0,250
+llama,250,math,train_history-100_grammar-150.json,0,0,0,150,100
+llama,250,history,train_history-250.json,0,0,0,0,250
+llama,250,grammar,train_history-50_grammar-200.json,0,0,0,200,50
+llama,250,creative writing,train_history-50_grammar-200.json,0,0,0,200,50
+qwen,250,programming,train_programming-50_history-200.json,50,0,0,0,200
+qwen,250,math,train_math-50_creative writing-200.json,0,50,200,0,0
+qwen,250,history,train_programming-50_math-100_creative writing-100.json,50,100,100,0,0
+qwen,250,grammar,train_history-50_creative writing-200.json,0,0,200,0,50
+qwen,250,creative writing,train_programming-50_math-50_history-50_grammar-100.json,50,50,0,100,50
+mistral,500,programming,train_math-100_grammar-400.json,0,100,0,400,0
+mistral,500,math,train_programming-100_math-100_history-100_creative writing-200.json,100,100,200,0,100
+mistral,500,history,train_history-200_grammar-300.json,0,0,0,300,200
+mistral,500,grammar,train_programming-200_grammar-300.json,200,0,0,300,0
+mistral,500,creative writing,train_math-100_grammar-400.json,0,100,0,400,0
+llama,500,programming,train_programming-100_history-100_grammar-300.json,100,0,0,300,100
+llama,500,math,train_history-500.json,0,0,0,0,500
+llama,500,history,train_history-200_creative writing-300.json,0,0,300,0,200
+llama,500,grammar,train_math-100_history-100_creative writing-100_grammar-200.json,0,100,100,200,100
+llama,500,creative writing,train_history-200_creative writing-300.json,0,0,300,0,200
+qwen,500,programming,train_math-100_grammar-400.json,0,100,0,400,0
+qwen,500,math,train_grammar-500.json,0,0,0,500,0
+qwen,500,history,train_math-100_history-100_grammar-300.json,0,100,0,300,100
+qwen,500,grammar,train_history-500.json,0,0,0,0,500
+qwen,500,creative writing,train_programming-100_grammar-400.json,100,0,0,400,0
+mistral,750,programming,train_creative writing-750.json,0,0,750,0,0
+mistral,750,math,train_programming-300_history-450.json,300,0,0,0,450
+mistral,750,history,train_math-150_history-600.json,0,150,0,0,600
+mistral,750,grammar,train_history-150_creative writing-150_grammar-450.json,0,0,150,450,150
+mistral,750,creative writing,train_history-150_creative writing-150_grammar-450.json,0,0,150,450,150
+llama,750,programming,train_programming-750.json,750,0,0,0,0
+llama,750,math,train_programming-300_grammar-450.json,300,0,0,450,0
+llama,750,history,train_history-300_creative writing-450.json,0,0,450,0,300
+llama,750,grammar,train_programming-150_creative writing-150_grammar-450.json,150,0,150,450,0
+llama,750,creative writing,train_math-150_creative writing-600.json,0,150,600,0,0
+qwen,750,programming,train_programming-150_math-150_grammar-450.json,150,150,0,450,0
+qwen,750,math,train_programming-300_grammar-450.json,300,0,0,450,0
+qwen,750,history,train_history-300_creative writing-450.json,0,0,450,0,300
+qwen,750,grammar,train_programming-150_math-300_history-300.json,150,300,0,0,300
+qwen,750,creative writing,train_programming-150_creative writing-600.json,150,0,600,0,0
+mistral,1000,programming,train_math-200_history-200_creative writing-600.json,0,200,600,0,200
+mistral,1000,math,train_math-200_grammar-800.json,0,200,0,800,0
+mistral,1000,history,train_history-200_creative writing-200_grammar-600.json,0,0,200,600,200
+mistral,1000,grammar,train_creative writing-200_grammar-800.json,0,0,200,800,0
+mistral,1000,creative writing,train_math-400_creative writing-600.json,0,400,600,0,0
+llama,1000,programming,train_programming-200_math-200_grammar-600.json,200,200,0,600,0
+llama,1000,math,train_math-200_history-800.json,0,200,0,0,800
+llama,1000,history,train_programming-400_history-600.json,400,0,0,0,600
+llama,1000,grammar,train_math-200_history-200_grammar-600.json,0,200,0,600,200
+llama,1000,creative writing,train_programming-200_creative writing-800.json,200,0,800,0,0
+qwen,1000,programming,train_programming-400_history-600.json,400,0,0,0,600
+qwen,1000,math,train_programming-200_math-400_grammar-400.json,200,400,0,400,0
+qwen,1000,history,train_programming-200_math-800.json,200,800,0,0,0
+qwen,1000,grammar,train_history-200_creative writing-400_grammar-400.json,0,0,400,400,200
+qwen,1000,creative writing,train_math-400_creative writing-600.json,0,400,600,0,0
+mistral,250,general,train_math-50_creative writing-50_grammar-150.json,0,50,50,150,0
+llama,250,general,train_history-100_grammar-150.json,0,0,0,150,100
+qwen,250,general,train_programming-50_history-200.json,50,0,0,0,200
+mistral,500,general,train_history-200_grammar-300.json,0,0,0,300,200
+llama,500,general,train_programming-100_history-100_grammar-300.json,100,0,0,300,100
+qwen,500,general,train_math-100_grammar-400.json,0,100,0,400,0
+mistral,750,general,train_math-150_history-600.json,0,150,0,0,600
+llama,750,general,train_programming-750.json,750,0,0,0,0
+qwen,750,general,train_programming-150_math-150_grammar-450.json,150,150,0,450,0
+mistral,1000,general,train_history-200_creative writing-400_grammar-400.json,0,0,400,400,200
+llama,1000,general,train_math-200_history-800.json,0,200,0,0,800
+qwen,1000,general,train_programming-400_history-600.json,400,0,0,0,600

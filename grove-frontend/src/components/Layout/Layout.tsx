@@ -12,6 +12,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { reset } = useAppStore();
   const location = useLocation();
   const navigate = useNavigate();
+  const isOptimization = location.pathname.startsWith('/optimization');
   const currentPage = React.useMemo(() => {
     if (location.pathname.startsWith('/sampling')) return 4;
     if (location.pathname.startsWith('/domain-analysis')) return 3;
@@ -41,11 +42,23 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                Dataset Analyzer
+                GROVE
               </h1>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Instruction dataset analysis & sampling
-              </p>
+              <div className="mt-0.5">
+                <select
+                  aria-label="기능 선택"
+                  className="text-sm text-gray-700 dark:text-gray-200 bg-transparent border border-gray-200 dark:border-gray-700 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  value={location.pathname.startsWith('/optimization') ? '/optimization' : '/'}
+                  onChange={(e) => navigate(e.target.value)}
+                >
+                  <option value="/" className="text-gray-900">
+                    Instruction dataset analysis & sampling
+                  </option>
+                  <option value="/optimization" className="text-gray-900">
+                    Optimization-driven Data Composition
+                  </option>
+                </select>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -70,7 +83,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </header>
 
       {/* Progress Indicator */}
-      <ProgressIndicator currentStep={currentPage} />
+      {!isOptimization && (
+        <ProgressIndicator currentStep={currentPage} />
+      )}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 pb-12">

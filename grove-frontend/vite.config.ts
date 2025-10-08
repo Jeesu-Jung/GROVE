@@ -21,6 +21,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/v1/task-mixture': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
 });

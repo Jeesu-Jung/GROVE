@@ -5,6 +5,7 @@ import { Statistics } from './pages/Statistics';
 import { DomainAnalysis } from './pages/DomainAnalysis';
 import { Sampling } from './pages/Sampling';
 import { useAppStore } from './store/useAppStore';
+import { Optimization } from './pages/Optimization';
 
 function App() {
   const { error, setError } = useAppStore();
@@ -36,6 +37,7 @@ function App() {
           <Route path="/statistics" element={<Statistics />} />
           <Route path="/domain-analysis" element={<DomainAnalysis />} />
           <Route path="/sampling" element={<Sampling />} />
+          <Route path="/optimization" element={<Optimization />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>
