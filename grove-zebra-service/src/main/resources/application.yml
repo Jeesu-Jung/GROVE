@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: grove-zebra-service
+
+server:
+  port: 8082
+
+
