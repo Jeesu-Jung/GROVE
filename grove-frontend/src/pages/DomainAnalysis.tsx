@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 import { Bot, Key, Download, Zap } from 'lucide-react';
 import { Card } from '../components/UI/Card';
+import AssignmentTree from '../components/Tree/AssignmentTree';
 import { Button } from '../components/UI/Button';
 import { useAppStore } from '../store/useAppStore';
 import { LLMService } from '../utils/llmService';
@@ -352,6 +353,14 @@ export const DomainAnalysis: React.FC = () => {
                 </div>
               ))}
             </div>
+          </Card>
+
+          {/* Task → Domain → Raw Tree (placed below Domain Details) */}
+          <Card title="Task Tree" description="Root → Tasks → Domains">
+            <AssignmentTree
+              assignments={domainAnalysis.assignments || []}
+              dataset={dataset}
+            />
           </Card>
 
           {/* Task tree intentionally not shown on Domain Analysis page */}
