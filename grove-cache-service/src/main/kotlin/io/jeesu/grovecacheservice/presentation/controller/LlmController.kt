@@ -3,6 +3,7 @@ package io.jeesu.grovecacheservice.presentation.controller
 import io.jeesu.grovecacheservice.application.service.LlmService
 import io.jeesu.grovecacheservice.infrastructure.external.dto.AnthropicClientDto
 import io.jeesu.grovecacheservice.infrastructure.external.dto.OpenAIClientDto
+import io.jeesu.grovecacheservice.infrastructure.external.dto.OpenRouterClientDto
 import io.jeesu.grovecacheservice.presentation.dto.*
 import org.springframework.http.HttpHeaders.AUTHORIZATION
 import org.springframework.http.ResponseEntity
@@ -50,6 +51,24 @@ class LlmController(
         } catch (_: IllegalArgumentException) {
             ResponseEntity.badRequest().build()
         } catch (_: Exception) {
+            ResponseEntity.status(502).build()
+        }
+    }
+
+    @PostMapping("/api/v1/chat/completions")
+    fun openRouterChatCompletions(
+        @RequestBody body: OpenRouterDto.ChatCompletionsRequest,
+        @RequestHeader(AUTHORIZATION, required = false) authorization: String?
+    ): ResponseEntity<OpenRouterClientDto.Response> {
+        if (body.model.isBlank() || body.messages.isEmpty()) {
+            return ResponseEntity.badRequest().build()
+        }
+        return try {
+            val response = llmService.openRouterChatCompletions(body, authorization)
+            ResponseEntity.ok(response)
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().build()
+        } catch (e: Exception) {
             ResponseEntity.status(502).build()
         }
     }

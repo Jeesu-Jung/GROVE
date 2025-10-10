@@ -2,8 +2,10 @@ package io.jeesu.grovecacheservice.application.service
 
 import io.jeesu.grovecacheservice.infrastructure.external.client.OpenAIClient
 import io.jeesu.grovecacheservice.infrastructure.external.client.AnthropicClient
+import io.jeesu.grovecacheservice.infrastructure.external.client.OpenRouterClient
 import io.jeesu.grovecacheservice.infrastructure.external.dto.AnthropicClientDto
 import io.jeesu.grovecacheservice.infrastructure.external.dto.OpenAIClientDto
+import io.jeesu.grovecacheservice.infrastructure.external.dto.OpenRouterClientDto
 import io.jeesu.grovecacheservice.presentation.dto.*
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
@@ -11,10 +13,11 @@ import org.springframework.stereotype.Service
 @Service
 class LlmService(
     private val openAIClient: OpenAIClient,
-    private val anthropicClient: AnthropicClient
+    private val anthropicClient: AnthropicClient,
+    private val openRouterClient: OpenRouterClient
 ) {
     @Cacheable(
-        cacheManager = "jsonCacheZero",
+        cacheManager = "jsonCacheInfinity",
         cacheNames = ["openai"],
         key = "#body.model + '|' + T(io.jeesu.grovecacheservice.infrastructure.util.HashUtil).Companion.generateKey(#body.messages[0].content) + '|' + #body.max_tokens + '|' + #body.max_completion_tokens"
     )
@@ -37,7 +40,32 @@ class LlmService(
     }
 
     @Cacheable(
-        cacheManager = "jsonCacheZero",
+        cacheManager = "jsonCacheInfinity",
+        cacheNames = ["openrouter"],
+        key = "#body.model + '|' + T(io.jeesu.grovecacheservice.infrastructure.util.HashUtil).Companion.generateKey(#body.messages[0].content) + '|' + #body.max_tokens"
+    )
+    fun openRouterChatCompletions(
+        body: OpenRouterDto.ChatCompletionsRequest,
+        authorization: String?
+    ): OpenRouterClientDto.Response {
+        if (authorization.isNullOrEmpty()) throw IllegalArgumentException("API 키가 필요합니다")
+
+        val req = OpenRouterClientDto.Request(
+            model = body.model,
+            messages = body.messages.map { OpenRouterClientDto.ChatMessage(role = it.role, content = it.content) },
+            temperature = body.temperature ?: 1.0,
+            max_tokens = body.max_tokens
+        )
+
+        try {
+            return openRouterClient.chatCompletions(authorization, req)
+        } catch (e: Exception) {
+            throw RuntimeException("외부 API 호출 실패")
+        }
+    }
+
+    @Cacheable(
+        cacheManager = "jsonCacheInfinity",
         cacheNames = ["antropic"],
         key = "#body.model + '|' + T(io.jeesu.grovecacheservice.infrastructure.util.HashUtil).Companion.generateKey(#body.messages[0].content) + '|' + #body.max_tokens"
     )
