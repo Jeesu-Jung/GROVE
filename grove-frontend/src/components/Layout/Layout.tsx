@@ -10,7 +10,7 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { reset } = useAppStore();
+  const { reset, setError } = useAppStore();
   const { reset: resetBinarization } = useBinarizationStore();
   const location = useLocation();
   const navigate = useNavigate();
@@ -32,6 +32,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       document.documentElement.classList.remove('dark');
     }
   }, [darkMode]);
+
+  // 라우트 변경 시 전역 에러 토스트 제거
+  React.useEffect(() => {
+    setError(null);
+  }, [location.pathname, setError]);
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
