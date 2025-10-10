@@ -26,6 +26,17 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/v1/benchmark': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/api/v1': {
+        target: 'http://localhost:8080',
+        // target: 'https://openrouter.ai',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
 });

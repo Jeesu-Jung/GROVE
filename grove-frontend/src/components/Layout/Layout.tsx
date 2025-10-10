@@ -2,6 +2,7 @@ import React from 'react';
 import { ProgressIndicator } from './ProgressIndicator';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
+import { useBinarizationStore } from '../../store/useBinarizationStore';
 import { Database, Moon, Sun } from 'lucide-react';
 
 interface LayoutProps {
@@ -10,9 +11,11 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { reset } = useAppStore();
+  const { reset: resetBinarization } = useBinarizationStore();
   const location = useLocation();
   const navigate = useNavigate();
   const isOptimization = location.pathname.startsWith('/optimization');
+  const isBinarization = location.pathname.startsWith('/binarization');
   const currentPage = React.useMemo(() => {
     if (location.pathname.startsWith('/sampling')) return 4;
     if (location.pathname.startsWith('/domain-analysis')) return 3;
@@ -20,6 +23,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     return 1;
   }, [location.pathname]);
   const [darkMode, setDarkMode] = React.useState(false);
+  const selectedPath = isOptimization ? '/optimization' : isBinarization ? '/binarization' : '/';
 
   React.useEffect(() => {
     if (darkMode) {
@@ -42,20 +46,28 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                GROVE
+              WEAVE
               </h1>
               <div className="mt-0.5">
                 <select
                   aria-label="기능 선택"
                   className="text-sm text-gray-700 dark:text-gray-200 bg-transparent border border-gray-200 dark:border-gray-700 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  value={location.pathname.startsWith('/optimization') ? '/optimization' : '/'}
-                  onChange={(e) => navigate(e.target.value)}
+                  value={selectedPath}
+                  onChange={(e) => {
+                    if (!e.target.value.startsWith('/binarization')) {
+                      resetBinarization();
+                    }
+                    navigate(e.target.value);
+                  }}
                 >
                   <option value="/" className="text-gray-900">
                     Instruction dataset analysis & sampling
                   </option>
                   <option value="/optimization" className="text-gray-900">
                     Optimization-driven Data Composition
+                  </option>
+                  <option value="/binarization" className="text-gray-900">
+                    Automated Binarization Module
                   </option>
                 </select>
               </div>
@@ -83,7 +95,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </header>
 
       {/* Progress Indicator */}
-      {!isOptimization && (
+      {!isOptimization && !isBinarization && (
         <ProgressIndicator currentStep={currentPage} />
       )}
 
