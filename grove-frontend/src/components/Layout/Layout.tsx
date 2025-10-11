@@ -65,7 +65,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   }}
                 >
                   <option value="/" className="text-gray-900">
-                    Instruction dataset analysis & sampling
+                    Interactive Visualization & Selection
                   </option>
                   <option value="/optimization" className="text-gray-900">
                     Optimization-driven Data Composition
