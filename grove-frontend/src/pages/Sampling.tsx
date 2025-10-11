@@ -13,7 +13,7 @@ import { Button } from '../components/UI/Button';
 import { useAppStore } from '../store/useAppStore';
 import { exportToCSV, exportToJSON } from '../utils/dataProcessing';
 import { SamplingStrategy, SampledDataset, DatasetRow, InstructionAssignment } from '../types';
-import AssignmentTree from '../components/Tree/AssignmentTree';
+// Task tree is not shown on Sampling page
 
 export const Sampling: React.FC = () => {
   const navigate = useNavigate();
@@ -36,7 +36,6 @@ export const Sampling: React.FC = () => {
   const [modalDomain, setModalDomain] = useState<string | null>(null);
   const [modalItems, setModalItems] = useState<Array<{ assignment: InstructionAssignment; row: DatasetRow }>>([]);
   const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!dataset || !domainAnalysis) {
@@ -117,19 +116,6 @@ export const Sampling: React.FC = () => {
 
     setSampledDataset(sampled);
     setPreviewData(sampleData.slice(0, 10));
-  };
-
-  const assignments = domainAnalysis?.assignments || [];
-  const taskGroups: { [task: string]: { [domain: string]: InstructionAssignment[] } } = assignments.reduce((acc, a) => {
-    const task = a.taskName || 'Unknown';
-    if (!acc[task]) acc[task] = {};
-    if (!acc[task][a.domainName]) acc[task][a.domainName] = [];
-    acc[task][a.domainName].push(a);
-    return acc;
-  }, {} as { [task: string]: { [domain: string]: InstructionAssignment[] } });
-
-  const toggleDomain = (domainName: string) => {
-    setCollapsed(prev => ({ ...prev, [domainName]: !prev[domainName] }));
   };
 
   const openModal = (a: InstructionAssignment) => {
@@ -222,19 +208,10 @@ export const Sampling: React.FC = () => {
         </p>
       </div>
 
-      {/* Task → Domain → Raw Tree */}
-      {dataset && domainAnalysis && (
-        <Card title="Task Tree" description="Root → Tasks → Domains">
-          <AssignmentTree
-            assignments={assignments}
-            dataset={dataset}
-            onLeafClick={(a, row) => openModal(a)}
-          />
-        </Card>
-      )}
+      {/* Task Tree removed on Sampling page */}
 
-      {/* Sampling Strategy Selection */}
-      <Card title="Sampling Strategy" description="Choose how to sample your dataset">
+      {/* Data-centric Sampling Selection */}
+      <Card title="Data-centric Sampling" description="Choose how to sample your dataset">
         <div className="space-y-4">
           <div className="grid md:grid-cols-3 gap-4">
             <div
@@ -595,12 +572,9 @@ export const Sampling: React.FC = () => {
       )}
 
       {/* Navigation */}
-      <div className="flex justify-between">
+      <div className="flex justify-start">
         <Button variant="outline" onClick={() => navigate('/domain-analysis')}>
           Back to Domain Analysis
-        </Button>
-        <Button onClick={() => navigate('/')}>
-          Start New Analysis
         </Button>
       </div>
     </div>
