@@ -70,12 +70,29 @@ export const Upload: React.FC = () => {
 
   React.useEffect(() => {
     if (!dataset) return;
-    // 기존 dataset이 있을 때 첫 행을 참고해 컬럼 선택 기본값 제안
-    const first = dataset.data[0] || {};
-    if (!selectedInputColumn && dataset.inputColumn) setSelectedInputColumn(dataset.inputColumn);
-    if (!selectedOutputColumn && dataset.outputColumn) setSelectedOutputColumn(dataset.outputColumn);
-    if (!selectedInputColumn && dataset.columns.length > 0) setSelectedInputColumn(dataset.columns[0]);
-    if (!selectedOutputColumn && dataset.columns.length > 1) setSelectedOutputColumn(dataset.columns[1] || dataset.columns[0]);
+
+    // Input 기본값: 저장된 값 > 'inputs' 컬럼 존재 시 > 첫 번째 컬럼
+    if (!selectedInputColumn) {
+      if (dataset.inputColumn) {
+        setSelectedInputColumn(dataset.inputColumn);
+      } else {
+        const inputsColumn = dataset.columns.find((c) => c.toLowerCase() === 'inputs');
+        if (inputsColumn) {
+          setSelectedInputColumn(inputsColumn);
+        } else if (dataset.columns.length > 0) {
+          setSelectedInputColumn(dataset.columns[0]);
+        }
+      }
+    }
+
+    // Output 기본값: 저장된 값 > 두 번째 컬럼(없으면 첫 번째)
+    if (!selectedOutputColumn) {
+      if (dataset.outputColumn) {
+        setSelectedOutputColumn(dataset.outputColumn);
+      } else if (dataset.columns.length > 1) {
+        setSelectedOutputColumn(dataset.columns[1] || dataset.columns[0]);
+      }
+    }
   }, [dataset]);
 
   return (
