@@ -25,6 +25,37 @@ export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dat
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [containerSize, setContainerSize] = React.useState<{ width: number; height: number }>({ width: 1200, height: 700 });
 
+  // 텍스트 길이에 기반한 노드 박스 폭/높이 계산 util (렌더/링크에서 동일 사용)
+  const computeNodeBox = React.useCallback((nodeDatum: any) => {
+    const name = String(nodeDatum?.name ?? '');
+    const count = nodeDatum?.attributes?.count as number | undefined;
+    const basePaddingX = 16;
+    const textWidth = Math.max(40, Math.round(name.length * 7.2));
+    const countWidth = count !== undefined ? 12 + String(count).length * 6.5 : 0;
+    const width = basePaddingX + textWidth + (countWidth ? 8 + countWidth : 0) + 10; // 10 = 여유
+    const height = 34;
+    return { width, height, basePaddingX };
+  }, []);
+
+  // 링크를 부모 우측 끝 -> 자식 좌측 끝으로 연결
+  const horizontalEdgePath = React.useCallback((linkDatum: any) => {
+    const sBox = computeNodeBox(linkDatum.source.data);
+    const tBox = computeNodeBox(linkDatum.target.data);
+
+    const startX = linkDatum.source.y + sBox.width / 2; // 부모 우측 끝
+    const startY = linkDatum.source.x;
+    const endX = linkDatum.target.y - tBox.width / 2; // 자식 좌측 끝
+    const endY = linkDatum.target.x;
+
+    // 깊이에 따른 곡률 완만화: 두 점 중간을 기준으로 수평 제어점을 두되,
+    // 노드 간 거리의 55% 정도를 베지어 핸들로 사용
+    const dx = endX - startX;
+    const handle = Math.max(60, Math.min(380, dx * 0.55));
+    const c1x = startX + handle;
+    const c2x = endX - handle;
+    return `M ${startX},${startY} C ${c1x},${startY} ${c2x},${endY} ${endX},${endY}`;
+  }, [computeNodeBox]);
+
   React.useLayoutEffect(() => {
     const update = () => {
       if (containerRef.current) {
@@ -60,6 +91,31 @@ export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dat
       })),
     })),
   };
+
+  // 노드의 예상 폭을 계산(텍스트 길이 기반, 렌더와 동일 로직)
+  const estimateBoxWidth = React.useCallback((node: TreeNode): number => {
+    const name = String(node?.name ?? '');
+    const count = (node?.attributes?.count as number | undefined);
+    const basePaddingX = 16;
+    const textWidth = Math.max(40, Math.round(name.length * 7.2));
+    const countWidth = count !== undefined ? 12 + String(count).length * 6.5 : 0;
+    const width = basePaddingX + textWidth + (countWidth ? 8 + countWidth : 0) + 10; // 여유 10px
+    return width;
+  }, []);
+
+  // 트리 전체에서의 최대 노드 폭 측정 후 depth 간 간격 산출
+  const depthFactor = React.useMemo(() => {
+    let maxW = 0;
+    const walk = (n?: TreeNode) => {
+      if (!n) return;
+      maxW = Math.max(maxW, estimateBoxWidth(n));
+      n.children?.forEach(walk);
+    };
+    walk(data);
+    // 부모 우측 끝 ↔ 자식 좌측 끝 사이에 충분한 공간 확보
+    const baseGap = 140; // 노드 간 최소 여백
+    return Math.max(240, Math.round(maxW + baseGap));
+  }, [data, estimateBoxWidth]);
 
   const handleNodeClick = (nodeDatum: any) => {
     const payload = (nodeDatum as any).__payload as TreeNode['__payload'];
@@ -213,19 +269,20 @@ export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dat
       )}
       <Tree
         data={data as any}
-        orientation="vertical"
-        translate={{ x: containerSize.width / 2, y: 60 }}
-        separation={{ siblings: 1.2, nonSiblings: 1.6 }}
+        orientation="horizontal"
+        translate={{ x: 60, y: containerSize.height / 2 }}
+        separation={{ siblings: 0.5, nonSiblings: 1.0 }}
         zoomable
         zoom={1.4}
         scaleExtent={{ min: 0.3, max: 4 }}
         onNodeClick={handleNodeClick}
-        pathFunc="diagonal"
+        pathFunc={horizontalEdgePath as any}
+        depthFactor={depthFactor}
         collapsible={false}
         styles={{
           links: {
-          stroke: '#9CA3AF',
-          strokeWidth: 1.2,
+          stroke: '#CBD5E1',
+          strokeWidth: 1.5,
           fill: 'none',
           strokeLinecap: 'round',
           strokeLinejoin: 'round',
@@ -233,38 +290,43 @@ export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dat
         }}
         renderCustomNodeElement={({ nodeDatum }) => {
           const isLeaf = !(nodeDatum.children && nodeDatum.children.length);
+          const isRoot = !nodeDatum.parent;
           const payload = (nodeDatum as any).__payload as TreeNode['__payload'];
           const clickable = Boolean(payload?.assignment && onLeafClick);
-          const handleClick = () => {
-            if (clickable && payload?.assignment && onLeafClick) {
-              onLeafClick(payload.assignment, payload.row);
-            }
+
+          // 노드 박스 메트릭 계산
+          const { width: boxWidth, height: boxHeight, basePaddingX } = computeNodeBox(nodeDatum);
+          const radius = 16;
+
+          const fill = isRoot ? '#E9F1FF' : '#D9F4E7';
+          const stroke = isRoot ? '#C7DAFE' : '#ADE7D6';
+          const textColor = '#0F172A';
+          const subTextColor = '#64748B';
+          const name = String(nodeDatum.name ?? '');
+          const count = nodeDatum.attributes?.count as number | undefined;
+
+          const handleClick = (e?: React.MouseEvent<SVGGElement, MouseEvent>) => {
+            if (e) e.stopPropagation();
+            if (clickable && payload?.assignment && onLeafClick) onLeafClick(payload.assignment, payload.row);
           };
+
           return (
-            <g onClick={handleClick} style={{ cursor: clickable ? 'pointer' : 'default' }}>
-              {isLeaf ? (
-                <circle r={18} fill="#ffffff" stroke="#9CA3AF" strokeWidth={2} />
-              ) : (
-                <circle r={18} fill="#6B7280" stroke="#6B7280" strokeWidth={2} />
-              )}
-              <text
-                x={24}
-                y={-2}
-                fontSize={12}
-                fill="#111827"
-                style={{ fontWeight: 400, stroke: 'none', fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif' }}
-              >
-                {nodeDatum.name}
+            <g onClick={handleClick} style={{ cursor: clickable ? 'pointer' : 'default' }} role={clickable ? 'button' : undefined} tabIndex={clickable ? 0 : undefined}
+               onKeyDown={(ev) => { if (clickable && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); handleClick(); } }}>
+              <defs>
+                <filter id="nlm-shadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="1" stdDeviation="1.2" floodOpacity="0.25" />
+                </filter>
+              </defs>
+              {/* 중심이 (0,0)이 되도록 배치 */}
+              <rect x={-boxWidth / 2} y={-boxHeight / 2} rx={radius} ry={radius} width={boxWidth} height={boxHeight} fill={fill} stroke={stroke} strokeWidth={1} filter="url(#nlm-shadow)" style={{ pointerEvents: 'all' }} />
+              {/* 라벨 텍스트 */}
+              <text x={-boxWidth / 2 + basePaddingX} y={-2} fontSize={12.5} fill={textColor} style={{ fontWeight: 600, stroke: 'none', fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif' }}>
+                {name}
               </text>
-              {nodeDatum.attributes?.count !== undefined && (
-                <text
-                  x={24}
-                  y={12}
-                  fontSize={11}
-                  fill="#6B7280"
-                  style={{ fontWeight: 400, stroke: 'none', fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif' }}
-                >
-                  {String(nodeDatum.attributes.count)}
+              {count !== undefined && (
+                <text x={-boxWidth / 2 + basePaddingX} y={12} fontSize={11} fill={subTextColor} style={{ fontWeight: 400, stroke: 'none', fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif' }}>
+                  {String(count)}
                 </text>
               )}
             </g>
