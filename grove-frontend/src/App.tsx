@@ -6,6 +6,11 @@ import { DomainAnalysis } from './pages/DomainAnalysis';
 import { Sampling } from './pages/Sampling';
 import { useAppStore } from './store/useAppStore';
 import { Optimization } from './pages/Optimization';
+import { Binarization } from './pages/Binarization';
+import UploadStep from './pages/binarization/UploadStep';
+import ModelsStep from './pages/binarization/ModelsStep';
+import RunStep from './pages/binarization/RunStep';
+import ResultsStep from './pages/binarization/ResultsStep';
 
 function App() {
   const { error, setError } = useAppStore();
@@ -38,6 +43,13 @@ function App() {
           <Route path="/domain-analysis" element={<DomainAnalysis />} />
           <Route path="/sampling" element={<Sampling />} />
           <Route path="/optimization" element={<Optimization />} />
+          <Route path="/binarization" element={<Binarization />}>
+            <Route path="upload" element={<UploadStep />} />
+            <Route path="models" element={<ModelsStep />} />
+            <Route path="run" element={<RunStep />} />
+            <Route path="results" element={<ResultsStep />} />
+            <Route path="" element={<UploadStep />} />
+          </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>

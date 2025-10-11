@@ -3,16 +3,18 @@ import { Check } from 'lucide-react';
 
 interface ProgressIndicatorProps {
   currentStep: number;
+  stepsOverride?: { id: number; title: string; description: string }[];
 }
 
-const steps = [
+const defaultSteps = [
   { id: 1, title: 'Upload Dataset', description: 'Import and configure data' },
   { id: 2, title: 'Statistics', description: 'Analyze text metrics' },
   { id: 3, title: 'Domain Analysis', description: 'Extract with LLM' },
   { id: 4, title: 'Sampling', description: 'Select and export' },
 ];
 
-export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({ currentStep }) => {
+export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({ currentStep, stepsOverride }) => {
+  const steps = stepsOverride ?? defaultSteps;
   return (
     <div className="w-full max-w-4xl mx-auto px-6 py-8">
       <div className="flex items-center justify-between">

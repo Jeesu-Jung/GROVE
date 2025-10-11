@@ -31,7 +31,7 @@ class CacheConfig {
         buildRedisCacheManager(redisConnectionFactory, Duration.ofMinutes(1))
 
     @Bean
-    fun jsonCacheZero(redisConnectionFactory: RedisConnectionFactory): CacheManager =
+    fun jsonCacheInfinity(redisConnectionFactory: RedisConnectionFactory): CacheManager =
         buildRedisCacheManager(redisConnectionFactory, Duration.ZERO)
 
     private fun buildRedisCacheManager(

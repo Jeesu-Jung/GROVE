@@ -222,6 +222,17 @@ export const Sampling: React.FC = () => {
         </p>
       </div>
 
+      {/* Task → Domain → Raw Tree */}
+      {dataset && domainAnalysis && (
+        <Card title="Task Tree" description="Root → Tasks → Domains">
+          <AssignmentTree
+            assignments={assignments}
+            dataset={dataset}
+            onLeafClick={(a, row) => openModal(a)}
+          />
+        </Card>
+      )}
+
       {/* Sampling Strategy Selection */}
       <Card title="Sampling Strategy" description="Choose how to sample your dataset">
         <div className="space-y-4">
@@ -491,16 +502,7 @@ export const Sampling: React.FC = () => {
         </div>
       )}
 
-      {/* Task → Domain → Raw Tree */}
-      {dataset && domainAnalysis && (
-        <Card title="Task Tree" description="Root → Tasks → Domains">
-          <AssignmentTree
-            assignments={assignments}
-            dataset={dataset}
-            onLeafClick={(a, row) => openModal(a)}
-          />
-        </Card>
-      )}
+      
 
       {/* Raw Data Modal (Domain list -> Row detail) */}
       {isModalOpen && modalDomain && (

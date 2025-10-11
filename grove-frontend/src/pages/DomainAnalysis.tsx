@@ -15,11 +15,12 @@ import {
 } from 'recharts';
 import { Bot, Key, Download, Zap } from 'lucide-react';
 import { Card } from '../components/UI/Card';
+import AssignmentTree from '../components/Tree/AssignmentTree';
 import { Button } from '../components/UI/Button';
 import { useAppStore } from '../store/useAppStore';
 import { LLMService } from '../utils/llmService';
 import { exportToJSON, exportToCSV } from '../utils/dataProcessing';
-import { LLMModel } from '../types';
+import { LLMModel, DatasetRow, InstructionAssignment } from '../types';
 
 const MODELS: { id: LLMModel; name: string; provider: string }[] = [
   { id: 'claude-3-sonnet', name: 'Claude 3 Sonnet', provider: 'Anthropic' },
@@ -47,6 +48,12 @@ export const DomainAnalysis: React.FC = () => {
   } = useAppStore();
 
   const [progress, setProgress] = useState(0);
+  // Modal states for tree leaf click
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'list' | 'detail'>('list');
+  const [modalDomain, setModalDomain] = useState<string | null>(null);
+  const [modalItems, setModalItems] = useState<Array<{ assignment: InstructionAssignment; row: DatasetRow }>>([]);
+  const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
 
   React.useEffect(() => {
     if (!dataset) {
@@ -82,6 +89,30 @@ export const DomainAnalysis: React.FC = () => {
       setIsProcessing(false);
       setProgress(0);
     }
+  };
+
+  // Open modal with items in same task/domain as clicked leaf
+  const openModal = (a: InstructionAssignment) => {
+    if (!dataset || !domainAnalysis) return;
+    const domainName = a.domainName;
+    const taskName = a.taskName || 'Unknown';
+    const items = (domainAnalysis.assignments || [])
+      .filter(x => x.domainName === domainName && (x.taskName || 'Unknown') === taskName)
+      .map(x => ({ assignment: x, row: dataset.data[x.datasetIndex] }))
+      .filter(x => !!x.row);
+    setModalDomain(domainName);
+    setModalItems(items as Array<{ assignment: InstructionAssignment; row: DatasetRow }>);
+    setSelectedItemIndex(null);
+    setModalMode('list');
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setModalDomain(null);
+    setModalItems([]);
+    setSelectedItemIndex(null);
+    setModalMode('list');
   };
 
   const selectedModelInfo = MODELS.find(m => m.id === selectedModel);
@@ -354,6 +385,15 @@ export const DomainAnalysis: React.FC = () => {
             </div>
           </Card>
 
+          {/* Task → Domain → Raw Tree (placed below Domain Details) */}
+          <Card title="Task Tree" description="Root → Tasks → Domains">
+            <AssignmentTree
+              assignments={domainAnalysis.assignments || []}
+              dataset={dataset}
+              onLeafClick={(a) => openModal(a)}
+            />
+          </Card>
+
           {/* Task tree intentionally not shown on Domain Analysis page */}
 
           {/* Export Options */}
@@ -375,6 +415,66 @@ export const DomainAnalysis: React.FC = () => {
               </Button>
             </div>
           </Card>
+          {/* Raw Data Modal for leaf click */}
+          {isModalOpen && modalDomain && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/50" onClick={closeModal} />
+              <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-2xl w-full mx-4 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{modalMode === 'list' ? `Domain: ${modalDomain}` : 'Raw Data Detail'}</h3>
+                  <div className="space-x-2">
+                    {modalMode === 'detail' && (
+                      <button onClick={() => setModalMode('list')} className="px-3 py-1 rounded border border-gray-300 dark:border-gray-700 text-sm mr-2">Back</button>
+                    )}
+                    <button onClick={closeModal} className="px-3 py-1 rounded border border-gray-300 dark:border-gray-700 text-sm">Close</button>
+                  </div>
+                </div>
+                {modalMode === 'list' ? (
+                  <div className="max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg divide-y divide-gray-100 dark:divide-gray-800">
+                    {modalItems.map((item, idx) => {
+                      const input = String(item.row[dataset.inputColumn || ''] || '');
+                      const output = String(item.row[dataset.outputColumn || ''] || '');
+                      return (
+                        <button
+                          key={item.assignment.id}
+                          onClick={() => { setSelectedItemIndex(idx); setModalMode('detail'); }}
+                          className="w-full text-left p-3 hover:bg-gray-50 dark:hover:bg-gray-800"
+                        >
+                          <div className="text-sm text-gray-900 dark:text-gray-100 font-medium mb-1">
+                            idx: {item.assignment.datasetIndex} • task: {item.assignment.taskName || 'Unknown'}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">input: {input}</div>
+                          {output && <div className="text-xs text-gray-500 dark:text-gray-400 truncate">output: {output}</div>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  selectedItemIndex !== null && (
+                    <div>
+                      <div className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                        <div>Task: <span className="font-medium text-gray-900 dark:text-white">{modalItems[selectedItemIndex].assignment.taskName || 'Unknown'}</span></div>
+                        <div>Domain: <span className="font-medium text-gray-900 dark:text-white">{modalItems[selectedItemIndex].assignment.domainName}</span></div>
+                        <div>Dataset Index: <span className="font-medium text-gray-900 dark:text-white">{modalItems[selectedItemIndex].assignment.datasetIndex}</span></div>
+                      </div>
+                      <div className="max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                        <table className="w-full text-sm">
+                          <tbody>
+                            {Object.entries(modalItems[selectedItemIndex].row).map(([key, value]) => (
+                              <tr key={key} className="border-b border-gray-100 dark:border-gray-800">
+                                <td className="py-2 pr-4 text-gray-500 dark:text-gray-400 align-top whitespace-nowrap">{key}</td>
+                                <td className="py-2 text-gray-900 dark:text-gray-100 break-words">{String(value)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
