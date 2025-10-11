@@ -1,0 +1,9 @@
+pandas>=2.2.3
+tqdm==4.66.2
+transformers>=4.44.0
+safetensors>=0.4.3
+torch>=2.6.0
+fastapi>=0.115.0
+uvicorn>=0.30.0
+redis>=5.0.0
+fastapi-cache2>=0.2.2
