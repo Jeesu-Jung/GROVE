@@ -51,10 +51,11 @@ export interface DomainAnalysis {
 }
 
 export interface SamplingStrategy {
-  type: 'top3' | 'custom' | 'balanced';
+  type: 'top3' | 'custom' | 'balanced' | 'lv' | 'hv' | 'mix';
   samplesPerDomain?: number;
   selectedDomains?: string[];
   totalSamples?: number;
+  pPercent?: number; // for model-centric strategies
 }
 
 export interface SampledDataset {

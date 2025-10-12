@@ -7,7 +7,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts';
-import { Download, Shuffle, Target, Copy } from 'lucide-react';
+import { Download, Shuffle, Target, Copy, ArrowUp, ArrowDown, Activity } from 'lucide-react';
 import { Card } from '../components/UI/Card';
 import { Button } from '../components/UI/Button';
 import { useAppStore } from '../store/useAppStore';
@@ -23,6 +23,7 @@ export const Sampling: React.FC = () => {
     sampledDataset,
     setSampledDataset,
     setError,
+    setDataset,
   } = useAppStore();
 
   const [samplingStrategy, setSamplingStrategy] = useState<SamplingStrategy>({
@@ -36,6 +37,73 @@ export const Sampling: React.FC = () => {
   const [modalDomain, setModalDomain] = useState<string | null>(null);
   const [modalItems, setModalItems] = useState<Array<{ assignment: InstructionAssignment; row: DatasetRow }>>([]);
   const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
+  // UI-only states for Model-centric visual controls
+  const [targetModel, setTargetModel] = useState<string>('llama-3.2-1b-instruct');
+  const [modelDifficulty, setModelDifficulty] = useState<'lv' | 'hv' | 'mix' | null>(null);
+  const [pValue, setPValue] = useState<number>(50);
+  const [isScoring, setIsScoring] = useState<boolean>(false);
+  const [scoreProgress, setScoreProgress] = useState<number>(0);
+  const [hasScore, setHasScore] = useState<boolean>(false);
+
+  // Scores must be calculated explicitly each session
+
+  const controlsDisabled = isScoring || !hasScore;
+
+  const calculateScores = async () => {
+    try {
+      if (!dataset) return;
+      const inputKey = dataset.inputColumn || '';
+      if (!inputKey) {
+        setError('Input column is not specified.');
+        return;
+      }
+      setIsScoring(true);
+      setScoreProgress(0);
+
+      const total = dataset.data.length;
+      const updatedRows = dataset.data.map(row => ({ ...row }));
+      let successCount = 0;
+
+      for (let i = 0; i < total; i++) {
+        const inputVal = String(updatedRows[i][inputKey] || '');
+        try {
+          const res = await fetch(`/v1/model-centric/${targetModel}/variability/extract`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ inputs: inputVal }),
+          });
+          if (!res.ok) throw new Error('Bad response');
+          const json = await res.json();
+          const score = json?.data?.dec_score;
+          if (typeof score === 'number') {
+            updatedRows[i]['dec_score'] = score;
+            successCount += 1;
+          } else {
+            updatedRows[i]['dec_score'] = 0;
+          }
+        } catch (err) {
+          updatedRows[i]['dec_score'] = 0;
+        }
+        setScoreProgress(Math.round(((i + 1) / total) * 100));
+      }
+
+      const updatedColumns = Array.isArray(dataset.columns)
+        ? (dataset.columns.includes('dec_score') ? dataset.columns : [...dataset.columns, 'dec_score'])
+        : ['dec_score'];
+
+      setDataset({ ...dataset, data: updatedRows, columns: updatedColumns });
+      if (successCount > 0) {
+        setHasScore(true);
+      } else {
+        setHasScore(false);
+        alert('점수 계산에 실패했습니다. 서버 상태를 확인해 주세요.');
+      }
+    } catch (e) {
+      setError('Failed to calculate scores');
+    } finally {
+      setIsScoring(false);
+    }
+  };
 
   useEffect(() => {
     if (!dataset || !domainAnalysis) {
@@ -45,10 +113,68 @@ export const Sampling: React.FC = () => {
 
   useEffect(() => {
     generateSample();
-  }, [samplingStrategy, selectedDomains]);
+  }, [samplingStrategy, selectedDomains, modelDifficulty, pValue, hasScore]);
 
   const generateSample = () => {
     if (!dataset || !domainAnalysis) return;
+
+    // if model-centric selected and scores are ready
+    if (['lv', 'hv', 'mix'].includes(samplingStrategy.type) || (modelDifficulty && hasScore)) {
+      const rows = dataset.data.slice();
+      const withScore = rows.filter(r => typeof r['dec_score'] === 'number');
+      if (withScore.length === 0) return;
+
+      const sortedAsc = withScore.slice().sort((a, b) => (a['dec_score'] as number) - (b['dec_score'] as number));
+      const sortedDesc = withScore.slice().sort((a, b) => (b['dec_score'] as number) - (a['dec_score'] as number));
+
+      const takeCount = Math.max(1, Math.floor((pValue / 100) * withScore.length));
+      let selected: DatasetRow[] = [];
+
+      if (modelDifficulty === 'lv') {
+        selected = sortedAsc.slice(0, takeCount);
+      } else if (modelDifficulty === 'hv') {
+        selected = sortedDesc.slice(0, takeCount);
+      } else if (modelDifficulty === 'mix') {
+        const half = Math.floor(takeCount / 2);
+        const ascPart = sortedAsc.slice(0, half);
+        const descPart = sortedDesc.slice(0, takeCount - half);
+        const seen = new Set<number>();
+        // dedupe by reference index if available; fallback to object identity
+        selected = [];
+        const pushUnique = (arr: DatasetRow[]) => {
+          for (const r of arr) {
+            // Cannot rely on dataset index field; use JSON signature
+            const sig = JSON.stringify(r);
+            if (!seen.has(sig.length)) {
+              seen.add(sig.length);
+              selected.push(r);
+            }
+          }
+        };
+        pushUnique(ascPart);
+        pushUnique(descPart);
+      }
+
+      const domainDistribution: { [domain: string]: number } = {};
+      // If we have assignments, compute domain distribution from them; otherwise leave empty counts
+      const assignments = domainAnalysis.assignments || [];
+      selected.forEach(row => {
+        const idx = dataset.data.indexOf(row);
+        const assignment = assignments.find(a => a.datasetIndex === idx);
+        const dn = assignment?.domainName || 'unknown';
+        domainDistribution[dn] = (domainDistribution[dn] || 0) + 1;
+      });
+
+      const sampled: SampledDataset = {
+        data: selected,
+        strategy: { ...samplingStrategy, type: (modelDifficulty as 'lv' | 'hv' | 'mix'), pPercent: pValue },
+        domainDistribution,
+        totalSamples: selected.length,
+      };
+      setSampledDataset(sampled);
+      setPreviewData(selected.slice(0, 10));
+      return;
+    }
 
     let samplesToGenerate: { [domain: string]: number } = {};
 
@@ -143,6 +269,10 @@ export const Sampling: React.FC = () => {
 
   const handleStrategyChange = (type: SamplingStrategy['type']) => {
     setSamplingStrategy(prev => ({ ...prev, type }));
+    // When data-centric is selected, clear model-centric selection
+    if (type === 'top3' || type === 'custom' || type === 'balanced') {
+      setModelDifficulty(null);
+    }
     if (type === 'custom' && selectedDomains.length === 0) {
       setSelectedDomains(domainAnalysis?.domains.slice(0, 3).map(d => d.name) || []);
     }
@@ -216,7 +346,7 @@ export const Sampling: React.FC = () => {
           <div className="grid md:grid-cols-3 gap-4">
             <div
               className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                samplingStrategy.type === 'top3'
+                samplingStrategy.type === 'top3' && !modelDifficulty
                   ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                   : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
               }`}
@@ -225,7 +355,7 @@ export const Sampling: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <input
                   type="radio"
-                  checked={samplingStrategy.type === 'top3'}
+                  checked={samplingStrategy.type === 'top3' && !modelDifficulty}
                   onChange={() => {}}
                   className="text-blue-600"
                 />
@@ -243,7 +373,7 @@ export const Sampling: React.FC = () => {
 
             <div
               className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                samplingStrategy.type === 'custom'
+                samplingStrategy.type === 'custom' && !modelDifficulty
                   ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
                   : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
               }`}
@@ -252,7 +382,7 @@ export const Sampling: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <input
                   type="radio"
-                  checked={samplingStrategy.type === 'custom'}
+                  checked={samplingStrategy.type === 'custom' && !modelDifficulty}
                   onChange={() => {}}
                   className="text-purple-600"
                 />
@@ -270,7 +400,7 @@ export const Sampling: React.FC = () => {
 
             <div
               className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                samplingStrategy.type === 'balanced'
+                samplingStrategy.type === 'balanced' && !modelDifficulty
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
                   : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
               }`}
@@ -279,7 +409,7 @@ export const Sampling: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <input
                   type="radio"
-                  checked={samplingStrategy.type === 'balanced'}
+                  checked={samplingStrategy.type === 'balanced' && !modelDifficulty}
                   onChange={() => {}}
                   className="text-emerald-600"
                 />
@@ -399,6 +529,129 @@ export const Sampling: React.FC = () => {
                 </p>
               </div>
             )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Data-centric + Model-centric Sampling (visual only) */}
+      <Card title="Data-centric +Model-centric Sampling" description="Choose how to sample your dataset">
+        <div className="space-y-4">
+          {/* Target Model selector (visual only) */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Target Model:</span>
+            <select
+              value={targetModel}
+              onChange={(e) => setTargetModel(e.target.value)}
+              className="flex-1 max-w-md px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+            >
+              <option value="llama-3.2-1b-instruct">llama-3.2-1b-instruct</option>
+            </select>
+            <Button onClick={calculateScores} loading={isScoring} disabled={isScoring} className="whitespace-nowrap">
+              <Activity className="w-4 h-4 mr-2" />
+              Caculating Score
+            </Button>
+            {isScoring || hasScore ? (
+              <span className="text-sm text-gray-600 dark:text-gray-400 min-w-[48px] text-right">{scoreProgress}%</span>
+            ) : null}
+          </div>
+
+          {/* Difficulty options with radio (single-select) */}
+          <div className="grid md:grid-cols-3 gap-4">
+            <button
+              className={`p-4 border-2 rounded-lg transition-all text-left ${
+                modelDifficulty === 'lv'
+                  ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+              } ${controlsDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+              onClick={() => {
+                if (controlsDisabled) return;
+                setModelDifficulty('lv');
+                // Clear data-centric selection
+                setSamplingStrategy(prev => ({ ...prev, type: prev.type as SamplingStrategy['type'] }));
+                if (samplingStrategy.type === 'top3' || samplingStrategy.type === 'custom' || samplingStrategy.type === 'balanced') {
+                  setSamplingStrategy(prev => ({ ...prev, type: 'top3' }));
+                }
+                // Force to neutralize data-centric radio visual by switching to a neutral value
+                setSamplingStrategy(prev => ({ ...prev, type: 'balanced' }));
+              }}
+              disabled={controlsDisabled}
+            >
+              <div className="flex items-center space-x-3">
+                <input type="radio" readOnly checked={modelDifficulty === 'lv'} className="text-amber-600" />
+                <ArrowUp className="w-5 h-5 text-amber-600" />
+                <div>
+                  <div className="font-medium text-gray-900 dark:text-white">LV (ascending)</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">easy data</div>
+                </div>
+              </div>
+            </button>
+
+            <button
+              className={`p-4 border-2 rounded-lg transition-all text-left ${
+                modelDifficulty === 'hv'
+                  ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+              } ${controlsDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+              onClick={() => {
+                if (controlsDisabled) return;
+                setModelDifficulty('hv');
+                setSamplingStrategy(prev => ({ ...prev, type: 'balanced' }));
+              }}
+              disabled={controlsDisabled}
+            >
+              <div className="flex items-center space-x-3">
+                <input type="radio" readOnly checked={modelDifficulty === 'hv'} className="text-teal-600" />
+                <ArrowDown className="w-5 h-5 text-teal-600" />
+                <div>
+                  <div className="font-medium text-gray-900 dark:text-white">HV (descending)</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">hard data</div>
+                </div>
+              </div>
+            </button>
+
+            <button
+              className={`p-4 border-2 rounded-lg transition-all text-left ${
+                modelDifficulty === 'mix'
+                  ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+              } ${controlsDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+              onClick={() => {
+                if (controlsDisabled) return;
+                setModelDifficulty('mix');
+                setSamplingStrategy(prev => ({ ...prev, type: 'balanced' }));
+              }}
+              disabled={controlsDisabled}
+            >
+              <div className="flex items-center space-x-3">
+                <input type="radio" readOnly checked={modelDifficulty === 'mix'} className="text-cyan-600" />
+                <Shuffle className="w-5 h-5 text-cyan-600" />
+                <div>
+                  <div className="font-medium text-gray-900 dark:text-white">Mix (recommended)</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">balanced data</div>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          {/* p% slider (visual only) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              p%: {pValue}%
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={pValue}
+              onChange={(e) => setPValue(parseInt(e.target.value))}
+              className={`w-full ${controlsDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+              disabled={controlsDisabled}
+            />
+            <div className="flex justify-between text-sm text-gray-500 mt-1">
+              <span>0</span>
+              <span>100</span>
+            </div>
           </div>
         </div>
       </Card>
