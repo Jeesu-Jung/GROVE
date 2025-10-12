@@ -31,6 +31,7 @@ export const Sampling: React.FC = () => {
     samplesPerDomain: 100,
   });
   const [selectedDomains, setSelectedDomains] = useState<string[]>([]);
+  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [previewData, setPreviewData] = useState<DatasetRow[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'list' | 'detail'>('list');
@@ -113,7 +114,19 @@ export const Sampling: React.FC = () => {
 
   useEffect(() => {
     generateSample();
-  }, [samplingStrategy, selectedDomains, modelDifficulty, pValue, hasScore]);
+  }, [samplingStrategy, selectedDomains, selectedTasks, modelDifficulty, pValue, hasScore]);
+
+  const taskList = React.useMemo(() => {
+    if (!domainAnalysis) return [] as { name: string; count: number }[];
+    const counts = new Map<string, number>();
+    (domainAnalysis.assignments || []).forEach(a => {
+      const t = (a.taskName || 'Unknown').trim() || 'Unknown';
+      counts.set(t, (counts.get(t) || 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [domainAnalysis]);
 
   const generateSample = () => {
     if (!dataset || !domainAnalysis) return;
@@ -177,6 +190,7 @@ export const Sampling: React.FC = () => {
     }
 
     let samplesToGenerate: { [domain: string]: number } = {};
+    let tasksToGenerate: { [task: string]: number } = {};
 
     switch (samplingStrategy.type) {
       case 'top3':
@@ -199,6 +213,31 @@ export const Sampling: React.FC = () => {
           samplesToGenerate[domain.name] = samplesPerDomain;
         });
         break;
+
+      case 'tasks_top3': {
+        const top3Tasks = taskList.slice(0, 3);
+        top3Tasks.forEach(t => {
+          tasksToGenerate[t.name] = samplingStrategy.samplesPerDomain || 100;
+        });
+        break;
+      }
+
+      case 'tasks_custom': {
+        selectedTasks.forEach(taskName => {
+          tasksToGenerate[taskName] = samplingStrategy.samplesPerDomain || 100;
+        });
+        break;
+      }
+
+      case 'tasks_balanced': {
+        const total = samplingStrategy.totalSamples || 1000;
+        const uniqueTasks = Math.max(1, taskList.length);
+        const perTask = Math.floor(total / uniqueTasks);
+        taskList.forEach(t => {
+          tasksToGenerate[t.name] = perTask;
+        });
+        break;
+      }
     }
 
     // Generate sample using domain -> dataset row mapping from LLM assignments
@@ -207,12 +246,16 @@ export const Sampling: React.FC = () => {
 
     const assignments = domainAnalysis.assignments || [];
     const domainToRows: { [domain: string]: DatasetRow[] } = {};
+    const taskToRows: { [task: string]: DatasetRow[] } = {};
 
     assignments.forEach(assign => {
       const row = dataset.data[assign.datasetIndex];
       if (!row) return;
       if (!domainToRows[assign.domainName]) domainToRows[assign.domainName] = [];
       domainToRows[assign.domainName].push(row);
+      const t = (assign.taskName || 'Unknown').trim() || 'Unknown';
+      if (!taskToRows[t]) taskToRows[t] = [];
+      taskToRows[t].push(row);
     });
 
     const pickRandom = <T,>(arr: T[], k: number): T[] => {
@@ -226,12 +269,27 @@ export const Sampling: React.FC = () => {
       return picked;
     };
 
-    Object.entries(samplesToGenerate).forEach(([domainName, count]) => {
-      const availableRows = domainToRows[domainName] || [];
-      const pickedRows = pickRandom(availableRows, count);
-      sampleData.push(...pickedRows);
-      domainDistribution[domainName] = pickedRows.length;
-    });
+    if (samplingStrategy.type.startsWith('tasks_')) {
+      Object.entries(tasksToGenerate).forEach(([taskName, count]) => {
+        const availableRows = taskToRows[taskName] || [];
+        const pickedRows = pickRandom(availableRows, count);
+        sampleData.push(...pickedRows);
+        // compute domain distribution for picked rows
+        pickedRows.forEach(r => {
+          const idx = dataset.data.indexOf(r);
+          const a = assignments.find(x => x.datasetIndex === idx);
+          const dn = a?.domainName || 'unknown';
+          domainDistribution[dn] = (domainDistribution[dn] || 0) + 1;
+        });
+      });
+    } else {
+      Object.entries(samplesToGenerate).forEach(([domainName, count]) => {
+        const availableRows = domainToRows[domainName] || [];
+        const pickedRows = pickRandom(availableRows, count);
+        sampleData.push(...pickedRows);
+        domainDistribution[domainName] = pickedRows.length;
+      });
+    }
 
     const sampled: SampledDataset = {
       data: sampleData,
@@ -270,11 +328,14 @@ export const Sampling: React.FC = () => {
   const handleStrategyChange = (type: SamplingStrategy['type']) => {
     setSamplingStrategy(prev => ({ ...prev, type }));
     // When data-centric is selected, clear model-centric selection
-    if (type === 'top3' || type === 'custom' || type === 'balanced') {
+    if (type === 'top3' || type === 'custom' || type === 'balanced' || type === 'tasks_top3' || type === 'tasks_custom' || type === 'tasks_balanced') {
       setModelDifficulty(null);
     }
     if (type === 'custom' && selectedDomains.length === 0) {
       setSelectedDomains(domainAnalysis?.domains.slice(0, 3).map(d => d.name) || []);
+    }
+    if (type === 'tasks_custom' && selectedTasks.length === 0) {
+      setSelectedTasks(taskList.slice(0, 3).map(t => t.name));
     }
   };
 
@@ -283,6 +344,14 @@ export const Sampling: React.FC = () => {
       prev.includes(domainName)
         ? prev.filter(d => d !== domainName)
         : [...prev, domainName]
+    );
+  };
+
+  const handleTaskToggle = (taskName: string) => {
+    setSelectedTasks(prev =>
+      prev.includes(taskName)
+        ? prev.filter(t => t !== taskName)
+        : [...prev, taskName]
     );
   };
 
@@ -389,7 +458,7 @@ export const Sampling: React.FC = () => {
                 <Shuffle className="w-5 h-5 text-purple-600" />
                 <div>
                   <h4 className="font-medium text-gray-900 dark:text-white">
-                    Custom Selection
+                    Custom Selection (Domains)
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Choose specific domains
@@ -416,10 +485,94 @@ export const Sampling: React.FC = () => {
                 <Target className="w-5 h-5 text-emerald-600" />
                 <div>
                   <h4 className="font-medium text-gray-900 dark:text-white">
-                    Balanced Sampling
+                    Balanced Sampling (Domains)
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Equal samples from all domains
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Task-centric Sampling Selection */}
+          <div className="grid md:grid-cols-3 gap-4">
+            <div
+              className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                samplingStrategy.type === 'tasks_top3' && !modelDifficulty
+                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+              }`}
+              onClick={() => handleStrategyChange('tasks_top3')}
+            >
+              <div className="flex items-center space-x-3">
+                <input
+                  type="radio"
+                  checked={samplingStrategy.type === 'tasks_top3' && !modelDifficulty}
+                  onChange={() => {}}
+                  className="text-indigo-600"
+                />
+                <Target className="w-5 h-5 text-indigo-600" />
+                <div>
+                  <h4 className="font-medium text-gray-900 dark:text-white">
+                    Top-3 Tasks
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Sample from most frequent tasks
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div
+              className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                samplingStrategy.type === 'tasks_custom' && !modelDifficulty
+                  ? 'border-lime-500 bg-lime-50 dark:bg-lime-900/20'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+              }`}
+              onClick={() => handleStrategyChange('tasks_custom')}
+            >
+              <div className="flex items-center space-x-3">
+                <input
+                  type="radio"
+                  checked={samplingStrategy.type === 'tasks_custom' && !modelDifficulty}
+                  onChange={() => {}}
+                  className="text-lime-600"
+                />
+                <Shuffle className="w-5 h-5 text-lime-600" />
+                <div>
+                  <h4 className="font-medium text-gray-900 dark:text-white">
+                    Custom Selection (Tasks)
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Choose specific tasks
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div
+              className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                samplingStrategy.type === 'tasks_balanced' && !modelDifficulty
+                  ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+              }`}
+              onClick={() => handleStrategyChange('tasks_balanced')}
+            >
+              <div className="flex items-center space-x-3">
+                <input
+                  type="radio"
+                  checked={samplingStrategy.type === 'tasks_balanced' && !modelDifficulty}
+                  onChange={() => {}}
+                  className="text-yellow-600"
+                />
+                <Target className="w-5 h-5 text-yellow-600" />
+                <div>
+                  <h4 className="font-medium text-gray-900 dark:text-white">
+                    Balanced Sampling (Tasks)
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Equal samples from all tasks
                   </p>
                 </div>
               </div>
@@ -529,12 +682,114 @@ export const Sampling: React.FC = () => {
                 </p>
               </div>
             )}
+
+            {samplingStrategy.type === 'tasks_top3' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Samples per task: {samplingStrategy.samplesPerDomain}
+                </label>
+                <input
+                  type="range"
+                  min="10"
+                  max="1000"
+                  step="10"
+                  value={samplingStrategy.samplesPerDomain || 100}
+                  onChange={(e) =>
+                    setSamplingStrategy(prev => ({
+                      ...prev,
+                      samplesPerDomain: parseInt(e.target.value),
+                    }))
+                  }
+                  className="w-full"
+                />
+                <div className="flex justify-between text-sm text-gray-500 mt-1">
+                  <span>10</span>
+                  <span>1000</span>
+                </div>
+              </div>
+            )}
+
+            {samplingStrategy.type === 'tasks_custom' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Select tasks to include:
+                  </label>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+                    {taskList.map((t) => (
+                      <label
+                        key={t.name}
+                        className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedTasks.includes(t.name)}
+                          onChange={() => handleTaskToggle(t.name)}
+                          className="text-purple-600"
+                        />
+                        <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
+                          {t.name} ({t.count})
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Samples per task: {samplingStrategy.samplesPerDomain}
+                  </label>
+                  <input
+                    type="range"
+                    min="10"
+                    max="1000"
+                    step="10"
+                    value={samplingStrategy.samplesPerDomain || 100}
+                    onChange={(e) =>
+                      setSamplingStrategy(prev => ({
+                        ...prev,
+                        samplesPerDomain: parseInt(e.target.value),
+                      }))
+                    }
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            )}
+
+            {samplingStrategy.type === 'tasks_balanced' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Total samples: {samplingStrategy.totalSamples}
+                </label>
+                <input
+                  type="range"
+                  min="100"
+                  max="10000"
+                  step="100"
+                  value={samplingStrategy.totalSamples || 1000}
+                  onChange={(e) =>
+                    setSamplingStrategy(prev => ({
+                      ...prev,
+                      totalSamples: parseInt(e.target.value),
+                    }))
+                  }
+                  className="w-full"
+                />
+                <div className="flex justify-between text-sm text-gray-500 mt-1">
+                  <span>100</span>
+                  <span>10,000</span>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                  ~{Math.floor((samplingStrategy.totalSamples || 1000) / Math.max(1, taskList.length))} samples per task
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </Card>
 
       {/* Data-centric + Model-centric Sampling (visual only) */}
-      <Card title="Data-centric +Model-centric Sampling" description="Choose how to sample your dataset">
+      <Card title="Data-centric + Model-centric Sampling" description="Choose how to sample your dataset">
         <div className="space-y-4">
           {/* Target Model selector (visual only) */}
           <div className="flex items-center gap-3">
