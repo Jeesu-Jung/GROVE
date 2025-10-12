@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { useBinarizationStore } from '../../store/useBinarizationStore';
 // icons removed: dark mode toggle deleted
-import iconUrl from '@/assets/icon.png';
+import iconUrl from '@/assets/weave.png';
 
 interface LayoutProps {
   children: React.ReactNode;
