@@ -4,7 +4,7 @@ import { Button } from '../../components/UI/Button';
 import { useBinarizationStore } from '../../store/useBinarizationStore';
 
 export const ResultsStep: React.FC = () => {
-  const { items, setStep, firstModel, secondModel, reset } = useBinarizationStore();
+  const { items, firstModel, secondModel } = useBinarizationStore();
   const [pageSize, setPageSize] = React.useState(10);
   const [page, setPage] = React.useState(1);
 
@@ -59,10 +59,26 @@ export const ResultsStep: React.FC = () => {
 
   const truncate = (t: string, n: number) => (!t ? '' : (t.length <= n ? t : t.slice(0, n) + '…'));
 
+  const getPageButtons = (current: number, total: number): (number | '…')[] => {
+    const buttons: (number | '…')[] = [];
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) buttons.push(i);
+      return buttons;
+    }
+    buttons.push(1);
+    if (current > 3) buttons.push('…');
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+    for (let i = start; i <= end; i++) buttons.push(i);
+    if (current < total - 2) buttons.push('…');
+    buttons.push(total);
+    return buttons;
+  };
+
   return (
-    <Card title="4) 결과 확인">
+    <Card title="4) Review results">
       {!items || items.length === 0 ? (
-        <p className="text-sm text-gray-600 dark:text-gray-300">아직 데이터가 없습니다.</p>
+        <p className="text-sm text-gray-600 dark:text-gray-300">No data yet.</p>
       ) : (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -96,18 +112,46 @@ export const ResultsStep: React.FC = () => {
               </tbody>
             </table>
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600 dark:text-gray-300">Page {page} / {totalPages}</span>
-            <div className="flex gap-2 items-center">
-              {totalPages > 1 && (
-                <>
-                  <Button size="sm" variant="secondary" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Prev</Button>
-                  <Button size="sm" variant="secondary" disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next</Button>
-                </>
-              )}
-              <Button size="sm" variant="outline" onClick={() => reset()}>새 작업 실행</Button>
+          {totalPages > 1 && (
+            <div className="mt-4 flex flex-col items-center gap-2">
+              <div className="flex items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className={page === 1 ? 'opacity-60 cursor-not-allowed' : ''}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  Prev
+                </Button>
+                {getPageButtons(page, totalPages).map((b, i) => (
+                  b === '…' ? (
+                    <span key={`ellipsis-${i}`} className="px-2 text-gray-500">…</span>
+                  ) : (
+                    <button
+                      key={b}
+                      className={`px-3 py-1 rounded border text-sm ${b === page ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900/20 dark:text-blue-200' : 'border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                      onClick={() => setPage(b as number)}
+                    >
+                      {b}
+                    </button>
+                  )
+                ))}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className={page === totalPages ? 'opacity-60 cursor-not-allowed' : ''}
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">
+                Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, items?.length || 0)} of {items?.length || 0}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </Card>

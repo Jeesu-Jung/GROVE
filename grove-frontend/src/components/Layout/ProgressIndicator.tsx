@@ -55,7 +55,7 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({ currentSte
             </div>
             {index < steps.length - 1 && (
               <div
-                className={`flex-1 h-0.5 mx-4 transition-all duration-300 ${
+                className={`h-0.5 w-16 md:w-24 mx-4 rounded-full transition-all duration-300 ${
                   step.id < currentStep ? 'bg-emerald-500' : 'bg-gray-200'
                 }`}
               />

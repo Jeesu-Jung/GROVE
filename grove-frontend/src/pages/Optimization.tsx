@@ -394,13 +394,15 @@ export const Optimization: React.FC = () => {
           {totalPages > 1 && (
             <div className="mt-4 flex flex-col items-center gap-2">
               <div className="flex items-center gap-1">
-                <button
-                  className={`px-3 py-1 rounded border text-sm ${page === 1 ? 'cursor-not-allowed opacity-60 border-gray-200 dark:border-gray-700' : 'border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className={page === 1 ? 'opacity-60 cursor-not-allowed' : ''}
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1}
                 >
                   Prev
-                </button>
+                </Button>
                 {getPageButtons(page, totalPages).map((b, i) => (
                   b === '…' ? (
                     <span key={`ellipsis-${i}`} className="px-2 text-gray-500">…</span>
@@ -414,13 +416,15 @@ export const Optimization: React.FC = () => {
                     </button>
                   )
                 ))}
-                <button
-                  className={`px-3 py-1 rounded border text-sm ${page === totalPages ? 'cursor-not-allowed opacity-60 border-gray-200 dark:border-gray-700' : 'border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className={page === totalPages ? 'opacity-60 cursor-not-allowed' : ''}
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
                 >
                   Next
-                </button>
+                </Button>
               </div>
               <div className="text-xs text-gray-600 dark:text-gray-400">
                 Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalItems)} of {totalItems}

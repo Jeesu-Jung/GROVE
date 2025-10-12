@@ -49,7 +49,7 @@ export const RunStep: React.FC = () => {
 
   const runBatch = async () => {
     if (!items || !firstModel || !secondModel || !apiKey.trim()) {
-      setError('API 키와 두 모델을 선택하고 데이터를 업로드하세요');
+      setError('Enter API key, select two models, and upload data');
       return;
     }
     setRunning(true);
@@ -72,14 +72,14 @@ export const RunStep: React.FC = () => {
       setProgress(100);
       nextStep();
     } catch (e: any) {
-      setError(`배치 처리 실패: ${e.message || e}`);
+      setError(`Batch processing failed: ${e.message || e}`);
     } finally {
       setRunning(false);
     }
   };
 
   return (
-    <Card title="3) API 키 입력 및 배치 실행" description="모든 inputs에 대해 두 모델을 호출합니다">
+    <Card title="3) Enter Open Routuer API key and run batch" description="Call both models for all inputs">
       <div className="space-y-3">
         <input
           type="password"
@@ -100,7 +100,7 @@ export const RunStep: React.FC = () => {
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setStep(2)} disabled={running}>Prev</Button>
           <Button onClick={runBatch} disabled={!items || !firstModel || !secondModel || !apiKey.trim() || running} loading={running}>
-            배치 실행
+            Run batch
           </Button>
         </div>
       </div>
