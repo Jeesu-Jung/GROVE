@@ -37,6 +37,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/v1/model-centric': {
+        target: 'http://localhost:8083',
+        changeOrigin: true,
+        secure: false,
+      },
       '/api/v1': {
         target: 'http://localhost:8080',
         // target: 'https://openrouter.ai',

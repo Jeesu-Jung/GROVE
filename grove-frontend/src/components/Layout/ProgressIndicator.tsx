@@ -7,17 +7,17 @@ interface ProgressIndicatorProps {
 }
 
 const defaultSteps = [
-  { id: 1, title: 'Upload Dataset', description: 'Import and configure data' },
-  { id: 2, title: 'Statistics', description: 'Analyze text metrics' },
-  { id: 3, title: 'Domain Analysis', description: 'Extract with LLM' },
-  { id: 4, title: 'Sampling', description: 'Select and export' },
+  { id: 1, title: 'Upload Dataset', description: 'Data Upload & Setting' },
+  { id: 2, title: 'Structure-based Statistics', description: 'text length, Instance size, etc.' },
+  { id: 3, title: 'Content-based Statistics', description: 'task & domain automatic analysis' },
+  { id: 4, title: 'Selection', description: 'Data- & Model-centric data Sampling' },
 ];
 
 export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({ currentStep, stepsOverride }) => {
   const steps = stepsOverride ?? defaultSteps;
   return (
     <div className="w-full max-w-4xl mx-auto px-6 py-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between">
         {steps.map((step, index) => (
           <React.Fragment key={step.id}>
             <div className="flex flex-col items-center relative">
@@ -55,7 +55,7 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({ currentSte
             </div>
             {index < steps.length - 1 && (
               <div
-                className={`flex-1 h-0.5 mx-4 transition-all duration-300 ${
+                className={`mt-6 h-0.5 w-16 md:w-24 mx-4 rounded-full transition-all duration-300 ${
                   step.id < currentStep ? 'bg-emerald-500' : 'bg-gray-200'
                 }`}
               />

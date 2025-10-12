@@ -44,7 +44,7 @@ export const ModelsStep: React.FC = () => {
       const json: BestModelsResponse = await res.json();
       setBest(json.data);
     } catch (e: any) {
-      setError(`최적 모델 조회 실패: ${e.message || e}`);
+      setError(`Failed to fetch best models: ${e.message || e}`);
     } finally {
       setLoadingBest(false);
     }
@@ -58,7 +58,7 @@ export const ModelsStep: React.FC = () => {
       const json: ModelsResponse = await res.json();
       setAllModels(json.data?.map(m => m.model) || []);
     } catch (e: any) {
-      setError(`모델 목록 조회 실패: ${e.message || e}`);
+      setError(`Failed to fetch model list: ${e.message || e}`);
     } finally {
       setLoadingModels(false);
     }
@@ -83,7 +83,7 @@ export const ModelsStep: React.FC = () => {
         setSecondModel(json.data?.model || '');
       }
     } catch (e: any) {
-      setError(`유사 모델 조회 실패: ${e.message || e}`);
+      setError(`Failed to fetch similar model: ${e.message || e}`);
     }
   };
 
@@ -114,7 +114,7 @@ export const ModelsStep: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Card title="2) 타겟 어빌리티 선택 및 최적 모델 조회" description="체크한 능력을 기준으로 superior/similarity 후보 조회">
+      <Card title="2) Select target abilities and find best models" description="Fetch superior/similarity candidates based on selected abilities">
         <div className="space-y-4">
           <div className="flex flex-wrap gap-4 items-center">
             <label className="inline-flex items-center gap-2 text-sm">
@@ -126,7 +126,7 @@ export const ModelsStep: React.FC = () => {
             <label className="inline-flex items-center gap-2 text-sm">
               <input type="checkbox" checked={includeReasoning} onChange={e => setAbilities({ includeReasoning: e.target.checked })} /> Reasoning
             </label>
-            <Button onClick={fetchBestModels} loading={loadingBest}>최적 모델 조회</Button>
+            <Button onClick={fetchBestModels} loading={loadingBest}>Get best models</Button>
           </div>
 
           {best && (
@@ -141,7 +141,7 @@ export const ModelsStep: React.FC = () => {
                       <ModelPill label="1st" value={best[k].first} active={firstModel===best[k].first && secondModel===best[k].second} onClick={() => { setFirstModel(best[k].first); setSecondModel(best[k].second); setCustomMode(false); }} />
                       <ModelPill label="2nd" value={best[k].second} active={firstModel===best[k].first && secondModel===best[k].second} onClick={() => { setFirstModel(best[k].first); setSecondModel(best[k].second); setCustomMode(false); }} />
                     </div>
-                    <Button size="sm" variant="secondary" className="w-full" onClick={() => { setFirstModel(best[k].first); setSecondModel(best[k].second); setCustomMode(false); }}>선택</Button>
+                    <Button size="sm" variant="secondary" className="w-full" onClick={() => { setFirstModel(best[k].first); setSecondModel(best[k].second); setCustomMode(false); }}>Select</Button>
                   </div>
                 </div>
               ))}
@@ -151,11 +151,11 @@ export const ModelsStep: React.FC = () => {
                 <div className="text-sm md:text-base font-medium text-gray-700 dark:text-gray-300 text-center mb-3">Custom</div>
                 <div className="space-y-2">
                   <select value={customFirst} onChange={e => { setCustomMode(true); setCustomFirst(e.target.value); setCustomSecond(''); }} className="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-                    <option value="">First model 선택</option>
+                    <option value="">Select first model</option>
                     {allModels.map(m => (<option key={m} value={m}>{m}</option>))}
                   </select>
-                  <input className="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100" value={customSecond ? `Second: ${customSecond}` : 'first 모델 선택 시 자동 설정'} readOnly />
-                  <Button size="sm" variant="secondary" className="w-full" onClick={() => { if (customFirst && customSecond) { setFirstModel(customFirst); setSecondModel(customSecond); setCustomMode(true); } }} disabled={!customFirst || !customSecond}>선택</Button>
+                  <input className="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100" value={customSecond ? `Second: ${customSecond}` : 'Automatically set after selecting the first model'} readOnly />
+                  <Button size="sm" variant="secondary" className="w-full" onClick={() => { if (customFirst && customSecond) { setFirstModel(customFirst); setSecondModel(customSecond); setCustomMode(true); } }} disabled={!customFirst || !customSecond}>Select</Button>
                 </div>
               </div>
             </div>
@@ -163,7 +163,7 @@ export const ModelsStep: React.FC = () => {
 
           {(firstModel || secondModel) && (
             <div className="text-sm">
-              <span className="text-gray-600 dark:text-gray-300">선택됨: </span>
+              <span className="text-gray-600 dark:text-gray-300">Selected: </span>
               <span className="inline-flex items-center gap-2">
                 <span className="px-2 py-0.5 rounded-md border border-blue-400 text-blue-700 dark:text-blue-300">first: {firstModel || '-'}</span>
                 <span className="px-2 py-0.5 rounded-md border border-purple-400 text-purple-700 dark:text-purple-300">second: {secondModel || '-'}</span>

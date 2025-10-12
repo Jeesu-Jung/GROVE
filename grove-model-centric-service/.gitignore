@@ -1,0 +1,4 @@
+.venv/
+__pycache__/
+# https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct/tree/main
+/model/Llama-3.2-1B-Instruct/

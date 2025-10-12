@@ -16,10 +16,10 @@ export const UploadStep: React.FC = () => {
     try {
       const text = await file.text();
       const json = JSON.parse(text);
-      if (!Array.isArray(json)) throw new Error('JSON 루트는 배열이어야 합니다');
+      if (!Array.isArray(json)) throw new Error('JSON root must be an array');
       const mapped = json.map((it: any, idx: number) => {
         if (typeof it?.inputs !== 'string' || !it.inputs.trim()) {
-          throw new Error(`항목 ${idx + 1}에 inputs 문자열이 없습니다`);
+          throw new Error(`Item ${idx + 1} is missing an inputs string`);
         }
         return { inputs: String(it.inputs) };
       });
@@ -27,7 +27,7 @@ export const UploadStep: React.FC = () => {
       setError(null);
     } catch (e: any) {
       setItems(null);
-      setError(e?.message || 'JSON 파싱 실패');
+      setError(e?.message || 'Failed to parse JSON');
     }
   }, [setError, setItems]);
 
@@ -38,7 +38,7 @@ export const UploadStep: React.FC = () => {
   });
 
   return (
-    <Card title="1) 데이터셋 업로드" description="JSON 배열, 각 항목은 inputs 필수">
+    <Card title="1) Upload Dataset" description="JSON array, each item requires an inputs string">
       {!items ? (
         <div
           {...getRootProps()}
@@ -73,7 +73,7 @@ export const UploadStep: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-700 dark:text-gray-300">{fileName} · {items.length} items</div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setItems(null)}>다시 업로드</Button>
+            <Button variant="outline" onClick={() => setItems(null)}>Upload again</Button>
             <Button onClick={() => nextStep()}>Next</Button>
           </div>
         </div>

@@ -7,6 +7,7 @@ import { Button } from '../components/UI/Button';
 import { useAppStore } from '../store/useAppStore';
 import { parseCSV, parseJSON } from '../utils/dataProcessing';
 import { Dataset } from '../types';
+import { ProgressIndicator } from '../components/Layout/ProgressIndicator';
 
 export const Upload: React.FC = () => {
   const navigate = useNavigate();
@@ -70,16 +71,42 @@ export const Upload: React.FC = () => {
 
   React.useEffect(() => {
     if (!dataset) return;
-    // 기존 dataset이 있을 때 첫 행을 참고해 컬럼 선택 기본값 제안
-    const first = dataset.data[0] || {};
-    if (!selectedInputColumn && dataset.inputColumn) setSelectedInputColumn(dataset.inputColumn);
-    if (!selectedOutputColumn && dataset.outputColumn) setSelectedOutputColumn(dataset.outputColumn);
-    if (!selectedInputColumn && dataset.columns.length > 0) setSelectedInputColumn(dataset.columns[0]);
-    if (!selectedOutputColumn && dataset.columns.length > 1) setSelectedOutputColumn(dataset.columns[1] || dataset.columns[0]);
+
+    // Input 기본값: 저장된 값 > 'inputs' 컬럼 존재 시 > 첫 번째 컬럼
+    if (!selectedInputColumn) {
+      if (dataset.inputColumn) {
+        setSelectedInputColumn(dataset.inputColumn);
+      } else {
+        const inputsColumn = dataset.columns.find((c) => c.toLowerCase() === 'inputs');
+        if (inputsColumn) {
+          setSelectedInputColumn(inputsColumn);
+        } else if (dataset.columns.length > 0) {
+          setSelectedInputColumn(dataset.columns[0]);
+        }
+      }
+    }
+
+    // Output 기본값: 저장된 값 > 두 번째 컬럼(없으면 첫 번째)
+    if (!selectedOutputColumn) {
+      if (dataset.outputColumn) {
+        setSelectedOutputColumn(dataset.outputColumn);
+      } else if (dataset.columns.length > 1) {
+        setSelectedOutputColumn(dataset.columns[1] || dataset.columns[0]);
+      }
+    }
   }, [dataset]);
 
   return (
-    <div className="space-y-6">
+    <div className="py-8 space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          Dataset Visualization and Selection
+        </h2>
+        <p className="mt-1 text-gray-600 dark:text-gray-300">
+          Visualize analysis of instruction dataset and Sampling
+        </p>
+      </div>
+      <ProgressIndicator currentStep={1} />
       <div className="text-center">
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
           Upload Your Dataset

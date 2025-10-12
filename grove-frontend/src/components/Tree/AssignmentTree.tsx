@@ -12,6 +12,8 @@ type AssignmentTreeProps = {
   filename?: string;
   exportScale?: number; // 1 = 100% 크기, 2 = 2배 해상도
   exportPadding?: number; // 이미지 외곽 여백(px)
+  height?: number | string; // 컨테이너 높이 (기본 700)
+  frameless?: boolean; // true일 때 테두리/라운딩 제거
 };
 
 type TreeNode = {
@@ -21,7 +23,7 @@ type TreeNode = {
   __payload?: { assignment?: InstructionAssignment; row?: DatasetRow };
 };
 
-export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dataset, onLeafClick, showExportButton = true, filename = 'task-tree.png', exportScale = 3, exportPadding = 32 }) => {
+export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dataset, onLeafClick, showExportButton = true, filename = 'task-tree.png', exportScale = 3, exportPadding = 32, height = 700, frameless = false }) => {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [containerSize, setContainerSize] = React.useState<{ width: number; height: number }>({ width: 1200, height: 700 });
 
@@ -47,10 +49,9 @@ export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dat
     const endX = linkDatum.target.y - tBox.width / 2; // 자식 좌측 끝
     const endY = linkDatum.target.x;
 
-    // 깊이에 따른 곡률 완만화: 두 점 중간을 기준으로 수평 제어점을 두되,
-    // 노드 간 거리의 55% 정도를 베지어 핸들로 사용
+    // 부드러운 곡선을 위해 베지어 핸들을 더 길게 설정
     const dx = endX - startX;
-    const handle = Math.max(60, Math.min(380, dx * 0.55));
+    const handle = Math.max(90, Math.min(460, dx * 0.65));
     const c1x = startX + handle;
     const c2x = endX - handle;
     return `M ${startX},${startY} C ${c1x},${startY} ${c2x},${endY} ${endX},${endY}`;
@@ -176,11 +177,10 @@ export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dat
       return clone;
     };
 
-    const cloned = inlineSvgStyles(svg);
-    // 원본 SVG의 화면 크기 및 현재 줌 스케일을 기준으로 100% 배율을 계산
-    const rect = svg.getBoundingClientRect();
-    const zoomGroup = svg.querySelector('.rd3t-g') as SVGGElement | null
-      || svg.querySelector('g[transform*="scale"], g[transform*="translate"]') as SVGGElement | null;
+    const cloned = inlineSvgStyles(svg as SVGSVGElement);
+    // 줌 스케일 파악
+    const zoomGroup = (svg as SVGSVGElement).querySelector('.rd3t-g') as SVGGElement | null
+      || (svg as SVGSVGElement).querySelector('g[transform*="scale"], g[transform*="translate"]') as SVGGElement | null;
     let scaleFactor = 1;
     if (zoomGroup) {
       const t = zoomGroup.getAttribute('transform') || '';
@@ -189,13 +189,37 @@ export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dat
     }
     if (!Number.isFinite(scaleFactor) || scaleFactor <= 0) scaleFactor = 1;
 
+    // 콘텐츠 전체 bbox 계산 (뷰포트가 아니라 트리 전체)
+    const clonedContentGroup = (cloned.querySelector('.rd3t-g') as SVGGElement | null)
+      || (cloned.querySelector('g[transform*="scale"], g[transform*="translate"]') as SVGGElement | null);
+    let bbox: { x: number; y: number; width: number; height: number } | null = null;
+    try {
+      const ns = 'http://www.w3.org/2000/svg';
+      const host = document.createElement('div');
+      host.style.position = 'fixed';
+      host.style.left = '-100000px';
+      host.style.top = '0';
+      host.style.width = '0';
+      host.style.height = '0';
+      document.body.appendChild(host);
+      const measureSvg = document.createElementNS(ns, 'svg');
+      host.appendChild(measureSvg);
+      const measureGroup = (clonedContentGroup ? clonedContentGroup.cloneNode(true) : cloned.cloneNode(true)) as SVGGElement | SVGSVGElement;
+      measureSvg.appendChild(measureGroup);
+      const b = (measureGroup as any).getBBox?.();
+      if (b && isFinite(b.width) && isFinite(b.height)) bbox = { x: b.x, y: b.y, width: b.width, height: b.height };
+      document.body.removeChild(host);
+    } catch {}
+
     // export 영역에 여백 적용을 위해 wrapper 추가 (원본은 변형하지 않음)
     const ns = 'http://www.w3.org/2000/svg';
     const wrapSvg = document.createElementNS(ns, 'svg');
     wrapSvg.setAttribute('xmlns', ns);
     wrapSvg.setAttribute('version', '1.1');
-    const baseW = Math.max(2, Math.ceil(rect.width / scaleFactor));
-    const baseH = Math.max(2, Math.ceil(rect.height / scaleFactor));
+    // bbox가 확보되면 전체 콘텐츠 크기 기반으로 내보냄, 아니면 뷰포트 기반 fallback
+    const rect = (svg as SVGSVGElement).getBoundingClientRect();
+    const baseW = Math.max(2, Math.ceil(bbox ? bbox.width : rect.width / scaleFactor));
+    const baseH = Math.max(2, Math.ceil(bbox ? bbox.height : rect.height / scaleFactor));
     const outW = baseW + exportPadding * 2;
     const outH = baseH + exportPadding * 2;
     wrapSvg.setAttribute('viewBox', `0 0 ${outW} ${outH}`);
@@ -210,12 +234,20 @@ export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dat
     bg.setAttribute('fill', '#ffffff');
     wrapSvg.appendChild(bg);
 
-    // 원본 클론을 패딩만큼 이동시키고, 역스케일 적용해 100% 배율로 보이게 함
-    const g = document.createElementNS(ns, 'g');
-    g.setAttribute('transform', `translate(${exportPadding}, ${exportPadding}) scale(${1 / scaleFactor})`);
-    // cloned는 전체 svg 콘텐츠이므로 내부 children만 옮김
-    Array.from(cloned.childNodes).forEach((n) => g.appendChild(n.cloneNode(true)));
-    wrapSvg.appendChild(g);
+    // 원본 클론의 콘텐츠만 추출하여 패딩만큼 이동시키고, 역스케일 적용해 100% 배율로 보이게 함
+    const gTranslate = document.createElementNS(ns, 'g');
+    const gScale = document.createElementNS(ns, 'g');
+    const offsetX = exportPadding - (bbox?.x ?? 0);
+    const offsetY = exportPadding - (bbox?.y ?? 0);
+    gTranslate.setAttribute('transform', `translate(${offsetX}, ${offsetY})`);
+    gScale.setAttribute('transform', `scale(${1 / scaleFactor})`);
+    if (clonedContentGroup) {
+      Array.from(clonedContentGroup.childNodes).forEach((n) => gScale.appendChild(n.cloneNode(true)));
+    } else {
+      Array.from(cloned.childNodes).forEach((n) => gScale.appendChild(n.cloneNode(true)));
+    }
+    gTranslate.appendChild(gScale);
+    wrapSvg.appendChild(gTranslate);
 
     const serializer = new XMLSerializer();
     const sourceSvgString = serializer.serializeToString(wrapSvg);
@@ -259,7 +291,23 @@ export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dat
   };
 
   return (
-    <div ref={containerRef} style={{ width: '100%', height: 700 }} className="relative border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
+    <div
+      ref={containerRef}
+      style={{ width: '100%', height }}
+      className={frameless
+        ? "relative bg-white dark:bg-gray-900"
+        : "relative border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900"}
+    >
+      {/* 링크 스타일 오버라이드: 더 두껍고 둥근 선 */}
+      <style>{`
+        path.rd3t-link, .rd3t-link path {
+          stroke: #475569 !important; /* slate-600 (더 어둡게) */
+          stroke-width: 2.6 !important; /* 조금 더 두껍게 */
+          fill: none !important;
+          stroke-linecap: round !important;
+          stroke-linejoin: round !important;
+        }
+      `}</style>
       {showExportButton && (
         <div className="absolute top-3 right-3 z-10">
           <Button variant="outline" size="sm" onClick={exportAsPng}>
@@ -279,18 +327,8 @@ export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dat
         pathFunc={horizontalEdgePath as any}
         depthFactor={depthFactor}
         collapsible={false}
-        styles={{
-          links: {
-          stroke: '#CBD5E1',
-          strokeWidth: 1.5,
-          fill: 'none',
-          strokeLinecap: 'round',
-          strokeLinejoin: 'round',
-          },
-        }}
         renderCustomNodeElement={({ nodeDatum }) => {
-          const isLeaf = !(nodeDatum.children && nodeDatum.children.length);
-          const isRoot = !nodeDatum.parent;
+          const isRoot = !(nodeDatum as any).parent;
           const payload = (nodeDatum as any).__payload as TreeNode['__payload'];
           const clickable = Boolean(payload?.assignment && onLeafClick);
 
