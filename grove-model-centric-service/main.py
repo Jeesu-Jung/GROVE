@@ -37,7 +37,7 @@ def svc_key_builder(func, namespace: str, request=None, response=None, *args, **
     raw = kwargs['kwargs']['inputs']
     if not raw or raw.isspace():
         raise ValueError("Input cannot be empty or contain only whitespace")
-    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    digest = hashlib.md5(raw.encode("utf-8")).hexdigest()
     return f"{namespace}:extract:{digest}"
 
 
