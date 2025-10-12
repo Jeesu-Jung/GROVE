@@ -441,24 +441,49 @@ export const DomainAnalysis: React.FC = () => {
                   };
 
                   const cloned = inlineSvgStyles(svg as SVGSVGElement);
-                  const rect = (svg as SVGSVGElement).getBoundingClientRect();
                   const zoomGroup = (svg as SVGSVGElement).querySelector('.rd3t-g') as SVGGElement | null
                     || (svg as SVGSVGElement).querySelector('g[transform*="scale"], g[transform*="translate"]') as SVGGElement | null;
                   let scaleFactor = 1; if (zoomGroup) { const t = zoomGroup.getAttribute('transform') || ''; const m = t.match(/scale\(([^)]+)\)/); if (m && !isNaN(parseFloat(m[1]))) scaleFactor = parseFloat(m[1]); }
                   if (!Number.isFinite(scaleFactor) || scaleFactor <= 0) scaleFactor = 1;
 
+                  // 전체 콘텐츠 bbox 계산
+                  const clonedContentGroup = (cloned.querySelector('.rd3t-g') as SVGGElement | null)
+                    || (cloned.querySelector('g[transform*="scale"], g[transform*="translate"]') as SVGGElement | null);
+                  let bbox: { x: number; y: number; width: number; height: number } | null = null;
+                  try {
+                    const ns2 = 'http://www.w3.org/2000/svg';
+                    const host = document.createElement('div'); host.style.position = 'fixed'; host.style.left = '-100000px'; host.style.top = '0'; host.style.width = '0'; host.style.height = '0'; document.body.appendChild(host);
+                    const measureSvg = document.createElementNS(ns2, 'svg'); host.appendChild(measureSvg);
+                    const measureGroup = (clonedContentGroup ? clonedContentGroup.cloneNode(true) : cloned.cloneNode(true)) as SVGGElement | SVGSVGElement;
+                    measureSvg.appendChild(measureGroup);
+                    const b = (measureGroup as any).getBBox?.();
+                    if (b && isFinite(b.width) && isFinite(b.height)) bbox = { x: b.x, y: b.y, width: b.width, height: b.height };
+                    document.body.removeChild(host);
+                  } catch {}
+
                   const ns = 'http://www.w3.org/2000/svg';
                   const wrapSvg = document.createElementNS(ns, 'svg');
                   wrapSvg.setAttribute('xmlns', ns); wrapSvg.setAttribute('version', '1.1');
-                  const baseW = Math.max(2, Math.ceil(rect.width / scaleFactor));
-                  const baseH = Math.max(2, Math.ceil(rect.height / scaleFactor));
+                  const rect = (svg as SVGSVGElement).getBoundingClientRect();
+                  const baseW = Math.max(2, Math.ceil(bbox ? bbox.width : rect.width / scaleFactor));
+                  const baseH = Math.max(2, Math.ceil(bbox ? bbox.height : rect.height / scaleFactor));
                   const padding = 24; const outW = baseW + padding * 2; const outH = baseH + padding * 2;
                   wrapSvg.setAttribute('viewBox', `0 0 ${outW} ${outH}`);
                   wrapSvg.setAttribute('width', String(outW)); wrapSvg.setAttribute('height', String(outH));
                   const bg = document.createElementNS(ns, 'rect'); bg.setAttribute('x', '0'); bg.setAttribute('y', '0'); bg.setAttribute('width', String(outW)); bg.setAttribute('height', String(outH)); bg.setAttribute('fill', '#ffffff'); wrapSvg.appendChild(bg);
-                  const g = document.createElementNS(ns, 'g'); g.setAttribute('transform', `translate(${padding}, ${padding}) scale(${1 / scaleFactor})`);
-                  Array.from(cloned.childNodes).forEach((n) => g.appendChild(n.cloneNode(true)));
-                  wrapSvg.appendChild(g);
+                  const gTranslate = document.createElementNS(ns, 'g');
+                  const gScale = document.createElementNS(ns, 'g');
+                  const offsetX = padding - (bbox?.x ?? 0);
+                  const offsetY = padding - (bbox?.y ?? 0);
+                  gTranslate.setAttribute('transform', `translate(${offsetX}, ${offsetY})`);
+                  gScale.setAttribute('transform', `scale(${1 / scaleFactor})`);
+                  if (clonedContentGroup) {
+                    Array.from(clonedContentGroup.childNodes).forEach((n) => gScale.appendChild(n.cloneNode(true)));
+                  } else {
+                    Array.from(cloned.childNodes).forEach((n) => gScale.appendChild(n.cloneNode(true)));
+                  }
+                  gTranslate.appendChild(gScale);
+                  wrapSvg.appendChild(gTranslate);
 
                   const serializer = new XMLSerializer(); const sourceSvgString = serializer.serializeToString(wrapSvg);
                   const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(sourceSvgString);
