@@ -20,6 +20,7 @@ export const ResultsStep: React.FC = () => {
   }, [items, pageSize]);
 
   const mapModelName = (name: string): string => {
+    console.log(name);
     if (!name) return name;
     const norm = name.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
     const dict: Record<string, string> = {
@@ -27,10 +28,11 @@ export const ResultsStep: React.FC = () => {
       'gpt 3 5 turbo': 'openai/gpt-3.5-turbo',
       'gemini 2 5 flash': 'google/gemini-2.5-flash',
       'llama 3 1 8b instruct': 'meta-llama/llama-3.1-8b-instruct',
-      'llama 2 13b chat': 'meta-llama/llama-2-13b-chat',
-      'llama 2 70b chat': 'meta-llama/llama-2-70b-chat',
-      'wizardlm 2 7b': 'microsoft/wizardlm-2-7b',
-      'wizardlm 2 8x22b': 'microsoft/wizardlm-2-8x22b',
+      'llama 4 maverick': 'meta-llama/llama-4-maverick:free',
+      'llama 3 3 70b instruct': 'meta-llama/llama-3.3-70b-instruct',
+      'mistral nemo': 'mistralai/mistral-nemo',
+      'mixtral 8x7b instruct': 'mistralai/mixtral-8x7b-instruct',
+      'gpt oss 20b': 'openai/gpt-oss-20b',
     };
     return dict[norm] || name;
   };

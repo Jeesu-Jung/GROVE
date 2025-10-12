@@ -1,7 +1,7 @@
-,,metric,GPT-4,GPT-3.5 Turbo,Gemini 2.5 Flash,LLaMA 3.1 8B Instruct,LLaMA 2 13B Chat,LLama 2 70B Chat,UltraLM-13B,WizardLM-2 7B,WizardLM-13B,WizardLM-2 8x22B,Vicuna-33B,Alpaca-7B,Falcon-40B-instruct,MPT-30B-chat,StarChat-Beta,Pythia-12B
-Instruction following,Instruction-Following Evaluation(IFeval),Inst-level loose-accuracy,85.37,72.54,89.33 ,25.19,24.82,24.07,54.92,45.83,33.92,49.51,52.76,30.58,24.54,30.70,28.30,24.71
+,,metric,GPT-4,GPT-3.5 Turbo,Gemini 2.5 Flash,LLaMA 3.1 8B Instruct,LLaMA 4 Maverick,Llama 3.3 70B Instruct,UltraLM-13B,Mistral Nemo,WizardLM-13B,Mixtral 8x7B Instruct,gpt-oss-20b,Alpaca-7B,Falcon-40B-instruct,MPT-30B-chat,StarChat-Beta,Pythia-12B
+Instruction following,Instruction-Following Evaluation(IFeval),Inst-level loose-accuracy,85.37,72.54,89.33,25.19,24.82,24.07,54.92,45.83,33.92,49.51,52.76,30.58,24.54,30.7,28.3,24.71
 Knowledge,MMLU,Accuracy,86.40%,70.00%,71.80%,53.10%,57.80%,68.90%,49.58%,42.50%,52.30%,52.70%,64%,37.92%,67.50%,50.40%,40.12%,27%
-,MMLU-pro,Overall acc,0.6371,0.3764,0.5912,0.2032,0.2534,0.3753,0.1938,0.1845,0.1688,0.2718,0.2309,0.1464,0.1402,0.2037,0.1180,0.1210
+,MMLU-pro,Overall acc,0.6371,0.3764,0.5912,0.2032,0.2534,0.3753,0.1938,0.1845,0.1688,0.2718,0.2309,0.1464,0.1402,0.2037,0.118,0.121
 Reasoning,ARC-easy,Accuracy,96.63%,92.80%,84.43%,72.14%,72.05%,82.20%,57.58%,39.48%,72.94%,80.68%,81.57%,43.31%,76.60%,87.12%,16.96%,24.49%
 ,ARC-Challenge,Accuracy,96.40%,83.02%,77.13%,54.61%,58.02%,67.66%,48.04%,34.90%,55.38%,71.93%,64.51%,33.79%,56.70%,70.73%,9.07%,31.80%
 ,Hellaswag,Accuracy,95.30%,85.00%,84.70%,67.50%,71.20%,78.10%,54.00%,77.70%,81.00%,83.30%,75.00%,23.60%,80.00%,24.53%,25.40%,25.60%

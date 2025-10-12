@@ -134,7 +134,7 @@ export const ModelsStep: React.FC = () => {
               {(['superior','similarity','superiorPlusSimilarity'] as const).map(k => (
                 <div key={k} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
                   <div className="text-sm md:text-base font-medium text-gray-700 dark:text-gray-300 text-center mb-3">
-                    {k === 'superiorPlusSimilarity' ? 'superior+similarity' : k}
+                    {k === 'superiorPlusSimilarity' ? 'Superior + Similarity' : k === 'superior' ? 'Superior' : 'Similarity'}
                   </div>
                   <div className="flex flex-col items-center gap-2">
                     <div className="flex flex-col gap-2 items-center w-full">
@@ -148,13 +148,13 @@ export const ModelsStep: React.FC = () => {
 
               {/* Custom pair */}
               <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-                <div className="text-sm md:text-base font-medium text-gray-700 dark:text-gray-300 text-center mb-3">Custom</div>
+                <div className="text-sm md:text-base font-medium text-gray-700 dark:text-gray-300 text-center mb-3">Custom Model + Similarity</div>
                 <div className="space-y-2">
                   <select value={customFirst} onChange={e => { setCustomMode(true); setCustomFirst(e.target.value); setCustomSecond(''); }} className="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
                     <option value="">Select first model</option>
                     {allModels.map(m => (<option key={m} value={m}>{m}</option>))}
                   </select>
-                  <input className="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100" value={customSecond ? `Second: ${customSecond}` : 'Automatically set after selecting the first model'} readOnly />
+                  <input className="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100" value={customSecond ? `2nd: ${customSecond}` : 'Automatically set after selecting the first model'} readOnly />
                   <Button size="sm" variant="secondary" className="w-full" onClick={() => { if (customFirst && customSecond) { setFirstModel(customFirst); setSecondModel(customSecond); setCustomMode(true); } }} disabled={!customFirst || !customSecond}>Select</Button>
                 </div>
               </div>
