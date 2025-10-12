@@ -271,7 +271,7 @@ export const Optimization: React.FC = () => {
         currentStep={currentStep}
         stepsOverride={[
           { id: 1, title: 'Combination Selection', description: 'Choose model, data size, and task' },
-          { id: 2, title: 'Search Results', description: 'Review and export matches' },
+          { id: 2, title: 'Task Mixture-based Sampling', description: 'Efficient Task-mixture composition' },
         ]}
       />
 

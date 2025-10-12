@@ -17,6 +17,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const isOptimization = location.pathname.startsWith('/optimization');
   const isBinarization = location.pathname.startsWith('/binarization');
+  const isUploadRoot = location.pathname === '/';
   const currentPage = React.useMemo(() => {
     if (location.pathname.startsWith('/sampling')) return 4;
     if (location.pathname.startsWith('/domain-analysis')) return 3;
@@ -80,8 +81,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </header>
 
-      {/* Progress Indicator */}
-      {!isOptimization && !isBinarization && (
+      {/* Progress Indicator (숨김: 업로드 루트에서는 페이지 내부에서 렌더링) */}
+      {!isOptimization && !isBinarization && !isUploadRoot && (
         <ProgressIndicator currentStep={currentPage} />
       )}
 

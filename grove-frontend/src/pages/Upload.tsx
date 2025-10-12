@@ -7,6 +7,7 @@ import { Button } from '../components/UI/Button';
 import { useAppStore } from '../store/useAppStore';
 import { parseCSV, parseJSON } from '../utils/dataProcessing';
 import { Dataset } from '../types';
+import { ProgressIndicator } from '../components/Layout/ProgressIndicator';
 
 export const Upload: React.FC = () => {
   const navigate = useNavigate();
@@ -96,7 +97,16 @@ export const Upload: React.FC = () => {
   }, [dataset]);
 
   return (
-    <div className="space-y-6">
+    <div className="py-8 space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          Dataset Visualization and Selection
+        </h2>
+        <p className="mt-1 text-gray-600 dark:text-gray-300">
+          Visualize analysis of instruction dataset and Sampling
+        </p>
+      </div>
+      <ProgressIndicator currentStep={1} />
       <div className="text-center">
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
           Upload Your Dataset

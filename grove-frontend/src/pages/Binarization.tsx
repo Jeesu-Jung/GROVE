@@ -19,9 +19,9 @@ export const Binarization: React.FC = () => {
   }, [step]);
 
   const steps = [
-    { id: 1, title: 'Upload', description: 'Upload JSON and validate' },
-    { id: 2, title: 'Model Selection', description: 'Select target abilities and compare candidates' },
-    { id: 3, title: 'Run Inference', description: 'Run batch with the two selected models' },
+    { id: 1, title: 'Data Upload & Setting', description: 'Upload JSON and validate' },
+    { id: 2, title: 'Model Pair Selection', description: 'Select target abilities and compare candidates' },
+    { id: 3, title: 'Model Response Generation', description: 'Run batch with the two selected models' },
     { id: 4, title: 'Review Results', description: 'Review/export results' },
   ];
 
