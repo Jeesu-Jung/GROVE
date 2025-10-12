@@ -79,14 +79,9 @@ export class LLMService {
   private async processSingle(instruction: string): Promise<{ domains: Domain[]; viaLLM: boolean; taskName?: string }> {
     const prompt = this.buildPromptForSingle(instruction);
     console.log(prompt);
-    try {
-      const response = await this.callLLMAPI(prompt);
-      const parsed = this.parseSingleLLMResponse(response, instruction);
-      return { domains: [parsed.domain], viaLLM: true, taskName: parsed.taskName };
-    } catch {
-      const fallback = this.fallbackCategorizationSingle(instruction);
-      return { domains: [fallback.domain], viaLLM: false, taskName: fallback.taskName };
-    }
+    const response = await this.callLLMAPI(prompt);
+    const parsed = this.parseSingleLLMResponse(response, instruction);
+    return { domains: [parsed.domain], viaLLM: true, taskName: parsed.taskName };
   }
 
   // removed old batch prompt in favor of single-instruction prompt
@@ -191,88 +186,6 @@ export class LLMService {
       },
       taskName: parsed.task?.trim() || 'Unknown',
     };
-  }
-
-  private fallbackCategorization(instructions: string[]): Domain[] {
-    const domains: Record<string, Domain> = {};
-    
-    // Simple keyword-based categorization
-    const patterns = {
-      'Text Generation': ['write', 'generate', 'create', 'compose', 'draft'],
-      'Code Programming': ['code', 'program', 'function', 'algorithm', 'debug'],
-      'Data Analysis': ['analyze', 'calculate', 'compute', 'data', 'statistics'],
-      'Question Answering': ['what', 'how', 'why', 'when', 'where', 'explain'],
-      'Translation': ['translate', 'convert', 'language'],
-      'Summarization': ['summarize', 'summary', 'brief', 'overview'],
-      'Creative Writing': ['story', 'poem', 'creative', 'fiction', 'narrative'],
-      'Math Problem Solving': ['solve', 'equation', 'math', 'calculate', 'formula'],
-    };
-
-    instructions.forEach(instruction => {
-      const lowerInst = instruction.toLowerCase();
-      let categorized = false;
-
-      for (const [domainName, keywords] of Object.entries(patterns)) {
-        if (keywords.some(keyword => lowerInst.includes(keyword))) {
-          if (!domains[domainName]) {
-            domains[domainName] = {
-              name: domainName,
-              count: 0,
-              percentage: 0,
-              examples: [],
-              verbObjectPairs: [],
-            };
-          }
-          domains[domainName].count++;
-          if (domains[domainName].examples.length < 3) {
-            domains[domainName].examples.push(instruction);
-          }
-          categorized = true;
-          break;
-        }
-      }
-
-      if (!categorized) {
-        if (!domains['Other']) {
-          domains['Other'] = {
-            name: 'Other',
-            count: 0,
-            percentage: 0,
-            examples: [],
-            verbObjectPairs: [],
-          };
-        }
-        domains['Other'].count++;
-        if (domains['Other'].examples.length < 3) {
-          domains['Other'].examples.push(instruction);
-        }
-      }
-    });
-
-    return Object.values(domains);
-  }
-
-  private fallbackCategorizationSingle(instruction: string): { domain: Domain; taskName: string } {
-    const domains = this.fallbackCategorization([instruction]);
-    const domain = domains[0] || {
-      name: 'Other',
-      count: 1,
-      percentage: 0,
-      examples: [instruction],
-      verbObjectPairs: [],
-    };
-
-    const lower = instruction.toLowerCase();
-    let task: string = 'Information Extraction';
-    if (/(summarize|summary|paraphrase|rewrite|translate)/.test(lower)) task = 'Transformative Generation';
-    if (/(write|generate|compose|story|poem)/.test(lower)) task = 'Creative Generation';
-    if (/(classify|label|category|categorize)/.test(lower)) task = 'Text Classification';
-    if (/(who|what|when|where|why|how|\?|answer)/.test(lower)) task = 'Question Answering';
-    if (/(retrieve|search|find)/.test(lower)) task = 'Information Retrieval';
-    if (/(analyz|extract|entity|noun|verb|pos|dependency)/.test(lower)) task = 'Linguistic Analysis';
-    if (/(translate)/.test(lower)) task = 'Translation';
-
-    return { domain, taskName: task };
   }
 
   private mergeDomains(existing: Domain[], newDomains: Domain[]): void {

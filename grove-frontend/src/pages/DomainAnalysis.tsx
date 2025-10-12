@@ -100,7 +100,9 @@ export const DomainAnalysis: React.FC = () => {
 
       setDomainAnalysis(analysis);
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to extract domains');
+      const baseMsg = 'LLM API 호출에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+      const detail = error instanceof Error ? ` (${error.message})` : '';
+      setError(baseMsg + detail);
     } finally {
       setIsProcessing(false);
       setProgress(0);
