@@ -260,7 +260,7 @@ export const Optimization: React.FC = () => {
     <div className="py-8 space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Optimization-driven Data Composition
+          Optimized Task-Mixture Design
         </h2>
         <p className="mt-1 text-gray-600 dark:text-gray-300">
           Select model, data size, and task to search the optimal combination.

@@ -13,7 +13,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { Bot, Key, Download, Zap } from 'lucide-react';
+import { Bot, Key, Download, Zap, Maximize2, Minimize2 } from 'lucide-react';
 import { Card } from '../components/UI/Card';
 import AssignmentTree from '../components/Tree/AssignmentTree';
 import { Button } from '../components/UI/Button';
@@ -54,6 +54,22 @@ export const DomainAnalysis: React.FC = () => {
   const [modalDomain, setModalDomain] = useState<string | null>(null);
   const [modalItems, setModalItems] = useState<Array<{ assignment: InstructionAssignment; row: DatasetRow }>>([]);
   const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
+  // 전체화면 트리 모달
+  const [isTreeFullOpen, setIsTreeFullOpen] = useState(false);
+  // 축소 뷰 트리 export를 위한 컨테이너 ref
+  const treeCardRef = React.useRef<HTMLDivElement | null>(null);
+
+  // ESC 키로 전체화면 닫기
+  React.useEffect(() => {
+    if (!isTreeFullOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsTreeFullOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isTreeFullOpen]);
 
   React.useEffect(() => {
     if (!dataset) {
@@ -94,6 +110,7 @@ export const DomainAnalysis: React.FC = () => {
   // Open modal with items in same task/domain as clicked leaf
   const openModal = (a: InstructionAssignment) => {
     if (!dataset || !domainAnalysis) return;
+    setIsTreeFullOpen(false);
     const domainName = a.domainName;
     const taskName = a.taskName || 'Unknown';
     const items = (domainAnalysis.assignments || [])
@@ -387,11 +404,82 @@ export const DomainAnalysis: React.FC = () => {
 
           {/* Task → Domain → Raw Tree (placed below Domain Details) */}
           <Card title="Task Tree" description="Root → Tasks → Domains">
-            <AssignmentTree
-              assignments={domainAnalysis.assignments || []}
-              dataset={dataset}
-              onLeafClick={(a) => openModal(a)}
-            />
+            <div className="flex justify-end items-center gap-2 mb-3">
+              <Button variant="outline" size="sm" onClick={() => setIsTreeFullOpen(true)}>
+                <Maximize2 className="w-4 h-4 mr-2" /> Fullscreen
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  // 카드 영역의 트리 SVG를 PNG로 내보내기
+                  const container = treeCardRef.current;
+                  if (!container) return;
+                  const svgs = Array.from(container.querySelectorAll('svg')) as SVGSVGElement[];
+                  if (!svgs.length) return;
+                  let svg: SVGSVGElement | null = null; let maxArea = 0;
+                  svgs.forEach((el) => { const r = el.getBoundingClientRect(); const a = r.width * r.height; if (a > maxArea) { maxArea = a; svg = el; } });
+                  if (!svg) return;
+
+                  const inlineSvgStyles = (source: SVGSVGElement) => {
+                    const clone = source.cloneNode(true) as SVGSVGElement;
+                    const srcNodes = source.querySelectorAll('*');
+                    const dstNodes = clone.querySelectorAll('*');
+                    srcNodes.forEach((node, idx) => {
+                      const target = dstNodes[idx] as SVGElement | undefined; if (!target) return;
+                      const cs = window.getComputedStyle(node as Element);
+                      const tag = (target.tagName || '').toLowerCase();
+                      if (cs.fill) target.setAttribute('fill', cs.fill);
+                      if (cs.stroke) target.setAttribute('stroke', cs.stroke);
+                      if (cs.strokeWidth) target.setAttribute('stroke-width', cs.strokeWidth);
+                      if (cs.fontFamily) target.setAttribute('font-family', cs.fontFamily);
+                      if (cs.fontSize) target.setAttribute('font-size', cs.fontSize);
+                      if (tag === 'path') { target.setAttribute('fill', 'none'); if (!target.getAttribute('stroke')) target.setAttribute('stroke', '#9CA3AF'); if (!target.getAttribute('stroke-width')) target.setAttribute('stroke-width', '1.2'); target.setAttribute('stroke-linecap', 'round'); target.setAttribute('stroke-linejoin', 'round'); }
+                    });
+                    clone.removeAttribute('width'); clone.removeAttribute('height');
+                    return clone;
+                  };
+
+                  const cloned = inlineSvgStyles(svg as SVGSVGElement);
+                  const rect = (svg as SVGSVGElement).getBoundingClientRect();
+                  const zoomGroup = (svg as SVGSVGElement).querySelector('.rd3t-g') as SVGGElement | null
+                    || (svg as SVGSVGElement).querySelector('g[transform*="scale"], g[transform*="translate"]') as SVGGElement | null;
+                  let scaleFactor = 1; if (zoomGroup) { const t = zoomGroup.getAttribute('transform') || ''; const m = t.match(/scale\(([^)]+)\)/); if (m && !isNaN(parseFloat(m[1]))) scaleFactor = parseFloat(m[1]); }
+                  if (!Number.isFinite(scaleFactor) || scaleFactor <= 0) scaleFactor = 1;
+
+                  const ns = 'http://www.w3.org/2000/svg';
+                  const wrapSvg = document.createElementNS(ns, 'svg');
+                  wrapSvg.setAttribute('xmlns', ns); wrapSvg.setAttribute('version', '1.1');
+                  const baseW = Math.max(2, Math.ceil(rect.width / scaleFactor));
+                  const baseH = Math.max(2, Math.ceil(rect.height / scaleFactor));
+                  const padding = 24; const outW = baseW + padding * 2; const outH = baseH + padding * 2;
+                  wrapSvg.setAttribute('viewBox', `0 0 ${outW} ${outH}`);
+                  wrapSvg.setAttribute('width', String(outW)); wrapSvg.setAttribute('height', String(outH));
+                  const bg = document.createElementNS(ns, 'rect'); bg.setAttribute('x', '0'); bg.setAttribute('y', '0'); bg.setAttribute('width', String(outW)); bg.setAttribute('height', String(outH)); bg.setAttribute('fill', '#ffffff'); wrapSvg.appendChild(bg);
+                  const g = document.createElementNS(ns, 'g'); g.setAttribute('transform', `translate(${padding}, ${padding}) scale(${1 / scaleFactor})`);
+                  Array.from(cloned.childNodes).forEach((n) => g.appendChild(n.cloneNode(true)));
+                  wrapSvg.appendChild(g);
+
+                  const serializer = new XMLSerializer(); const sourceSvgString = serializer.serializeToString(wrapSvg);
+                  const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(sourceSvgString);
+                  const img = new Image(); img.crossOrigin = 'anonymous';
+                  const scale = 3; const canvas = document.createElement('canvas'); canvas.width = Math.ceil(outW * scale); canvas.height = Math.ceil(outH * scale);
+                  const ctx = canvas.getContext('2d'); if (!ctx) return; ctx.imageSmoothingQuality = 'high';
+                  img.onload = () => { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.save(); ctx.scale(scale, scale); ctx.drawImage(img, 0, 0); ctx.restore(); canvas.toBlob((blob) => { if (!blob) return; const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'task-tree.png'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); }, 'image/png'); };
+                  img.src = svgDataUrl;
+                }}
+              >
+                <Download className="w-4 h-4 mr-2" /> Export PNG
+              </Button>
+            </div>
+            <div ref={treeCardRef}>
+              <AssignmentTree
+                assignments={domainAnalysis.assignments || []}
+                dataset={dataset}
+                onLeafClick={(a) => openModal(a)}
+                showExportButton={false}
+              />
+            </div>
           </Card>
 
           {/* Task tree intentionally not shown on Domain Analysis page */}
@@ -472,6 +560,33 @@ export const DomainAnalysis: React.FC = () => {
                     </div>
                   )
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Task Tree Fullscreen Modal */}
+          {isTreeFullOpen && (
+            <div className="fixed inset-0 z-50">
+              <div className="absolute inset-0 bg-black/70" onClick={() => setIsTreeFullOpen(false)} />
+              <div className="relative w-full h-full p-2">
+                {/* 프레임 컨테이너 (라운드 + 두꺼운 다크 테두리) */}
+                <div className="absolute inset-3">
+                  <div className="relative w-full h-full bg-white dark:bg-gray-900 border-[3px] border-gray-700/80 rounded-2xl overflow-hidden">
+                    {/* Minimize 버튼: Export와 같은 y, 오른쪽에서 좌측으로 간격 분리 */}
+                    <div className="absolute top-3 right-[152px] z-[60]">
+                      <Button variant="outline" size="sm" onClick={() => setIsTreeFullOpen(false)} className="shadow">
+                        <Minimize2 className="w-4 h-4 mr-2" /> Minimize
+                      </Button>
+                    </div>
+                    <AssignmentTree
+                      assignments={domainAnalysis.assignments || []}
+                      dataset={dataset}
+                      onLeafClick={(a) => openModal(a)}
+                      height={"100%"}
+                      frameless
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           )}
