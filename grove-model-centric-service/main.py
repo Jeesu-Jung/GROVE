@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Body
+from fastapi import FastAPI, Body, HTTPException
 from pydantic import BaseModel
 import torch
 from torch import nn
@@ -34,12 +34,9 @@ def jensen_shannon_divergence(logit1: torch.Tensor, logit2: torch.Tensor) -> flo
     return js_div.item()
 
 def svc_key_builder(func, namespace: str, request=None, response=None, *args, **kwargs) -> str:
-    if "inputs" in kwargs:
-        raw = kwargs["inputs"]
-    elif len(args) >= 2:
-        raw = args[1]
-    else:
-        raw = ""
+    raw = kwargs['kwargs']['inputs']
+    if not raw or raw.isspace():
+        raise ValueError("Input cannot be empty or contain only whitespace")
     digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()
     return f"{namespace}:extract:{digest}"
 
@@ -76,9 +73,12 @@ app = FastAPI(lifespan=lifespan)
 service = VariabilityService()
 
 
-@app.post("/v1/model-centric/variability/extract")
+@app.post("/v1/model-centric/llama-3.2-1b-instruct/variability/extract")
 async def extract_variability(req: VariabilityRequest = Body(...)):
-    dec_score = await service.extract(req.inputs)
+    try:
+        dec_score = await service.extract(inputs=req.inputs)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return {
         "code": "OK",
         "message": "Success",
