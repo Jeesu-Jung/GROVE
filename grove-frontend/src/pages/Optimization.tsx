@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card } from '../components/UI/Card';
 import { Button } from '../components/UI/Button';
+import { ProgressIndicator } from '../components/Layout/ProgressIndicator';
 import { useAppStore } from '../store/useAppStore';
 
 interface BestModelItem {
@@ -37,6 +38,7 @@ export const Optimization: React.FC = () => {
 
   const [combos, setCombos] = React.useState<BestModelItem[]>([]);
   const [loadingCombos, setLoadingCombos] = React.useState(false);
+  const [currentStep, setCurrentStep] = React.useState<1 | 2>(1);
 
   const [selectedModel, setSelectedModel] = React.useState<string>('');
   const [selectedDataSize, setSelectedDataSize] = React.useState<number | ''>('');
@@ -53,6 +55,8 @@ export const Optimization: React.FC = () => {
     instruction: true,
     constraint: true,
   });
+  const [page, setPage] = React.useState<number>(1);
+  const [pageSize, setPageSize] = React.useState<number>(10);
 
   // Fetch available combinations on mount
   React.useEffect(() => {
@@ -65,7 +69,7 @@ export const Optimization: React.FC = () => {
         setCombos(json.data || []);
       } catch (e: any) {
         console.error(e);
-        setError(`조합 목록을 불러오지 못했습니다: ${e.message || e}`);
+        setError(`Failed to load combinations: ${e.message || e}`);
       } finally {
         setLoadingCombos(false);
       }
@@ -112,6 +116,8 @@ export const Optimization: React.FC = () => {
       setResults([]);
       setBestInfo(null);
       setTotalCount(null);
+      setCurrentStep(2);
+      setPage(1);
       const params = new URLSearchParams({
         model: selectedModel,
         dataSize: String(selectedDataSize),
@@ -127,7 +133,7 @@ export const Optimization: React.FC = () => {
       setTotalCount((json as any)?.meta?.totalCount ?? null);
     } catch (e: any) {
       console.error(e);
-      setError(`검색 중 오류가 발생했습니다: ${e.message || e}`);
+      setError(`Search failed: ${e.message || e}`);
     } finally {
       setLoadingSearch(false);
     }
@@ -212,6 +218,44 @@ export const Optimization: React.FC = () => {
     return text.slice(0, limit) + '…';
   };
 
+  // Pagination helpers
+  const totalItems = results.length;
+  const totalPages = React.useMemo(() => {
+    return Math.max(1, Math.ceil(totalItems / Math.max(1, pageSize)) || 1);
+  }, [totalItems, pageSize]);
+  React.useEffect(() => {
+    // reset or clamp page when dependencies change
+    setPage(prev => {
+      const p = Math.min(Math.max(1, prev), totalPages);
+      return p;
+    });
+  }, [totalPages]);
+  React.useEffect(() => {
+    setPage(1);
+  }, [pageSize, results]);
+
+  const pagedItems = React.useMemo(() => {
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+    return results.slice(start, end);
+  }, [results, page, pageSize]);
+
+  const getPageButtons = (current: number, total: number): (number | '…')[] => {
+    const buttons: (number | '…')[] = [];
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) buttons.push(i);
+      return buttons;
+    }
+    buttons.push(1);
+    if (current > 3) buttons.push('…');
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+    for (let i = start; i <= end; i++) buttons.push(i);
+    if (current < total - 2) buttons.push('…');
+    buttons.push(total);
+    return buttons;
+  };
+
   return (
     <div className="py-8 space-y-6">
       <div>
@@ -219,115 +263,178 @@ export const Optimization: React.FC = () => {
           Optimization-driven Data Composition
         </h2>
         <p className="mt-1 text-gray-600 dark:text-gray-300">
-          모델/데이터 크기/태스크를 선택해 최적 조합을 검색하고 결과를 확인하세요.
+          Select model, data size, and task to search the optimal combination.
         </p>
       </div>
 
-      {/* Step 1 */}
-      <Card title="1) 조합 선택" description="model → data size → target task 순으로 선택 후 Search">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-          <div>
-            <label className="block mb-1 text-sm text-gray-700 dark:text-gray-300">Model</label>
-            <select
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              disabled={loadingCombos || modelOptions.length === 0}
-            >
-              <option value="">선택하세요</option>
-              {modelOptions.map(m => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block mb-1 text-sm text-gray-700 dark:text-gray-300">Data size</label>
-            <select
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
-              value={selectedDataSize}
-              onChange={(e) => setSelectedDataSize(e.target.value ? Number(e.target.value) : '')}
-              disabled={!selectedModel || dataSizeOptions.length === 0}
-            >
-              <option value="">선택하세요</option>
-              {dataSizeOptions.map(s => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block mb-1 text-sm text-gray-700 dark:text-gray-300">Target task</label>
-            <select
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
-              value={selectedTask}
-              onChange={(e) => setSelectedTask(e.target.value)}
-              disabled={!selectedModel || !selectedDataSize || taskOptions.length === 0}
-            >
-              <option value="">선택하세요</option>
-              {taskOptions.map(t => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={handleSearch} disabled={!canSearch} loading={loadingSearch} className="w-full">Search</Button>
-          </div>
-        </div>
-      </Card>
+      <ProgressIndicator
+        currentStep={currentStep}
+        stepsOverride={[
+          { id: 1, title: 'Combination Selection', description: 'Choose model, data size, and task' },
+          { id: 2, title: 'Search Results', description: 'Review and export matches' },
+        ]}
+      />
 
-      {/* Step 2 */}
-      <Card title="2) 검색 결과" description="테이블로 미리보기, JSON 내보내기 지원">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            {results.length ? `총 ${(totalCount ?? results.length)}건` : '결과 없음'}
-          </p>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3 text-xs text-gray-700 dark:text-gray-300">
-              <label className="inline-flex items-center gap-1">
-                <input type="checkbox" className="rounded border-gray-300" checked={visibleCols.inputs} onChange={(e) => setVisibleCols(v => ({ ...v, inputs: e.target.checked }))} />
-                <span>inputs</span>
-              </label>
-              <label className="inline-flex items-center gap-1">
-                <input type="checkbox" className="rounded border-gray-300" checked={visibleCols.input} onChange={(e) => setVisibleCols(v => ({ ...v, input: e.target.checked }))} />
-                <span>input</span>
-              </label>
-              <label className="inline-flex items-center gap-1">
-                <input type="checkbox" className="rounded border-gray-300" checked={visibleCols.output} onChange={(e) => setVisibleCols(v => ({ ...v, output: e.target.checked }))} />
-                <span>output</span>
-              </label>
-              <label className="inline-flex items-center gap-1">
-                <input type="checkbox" className="rounded border-gray-300" checked={visibleCols.instruction} onChange={(e) => setVisibleCols(v => ({ ...v, instruction: e.target.checked }))} />
-                <span>instruction</span>
-              </label>
-              <label className="inline-flex items-center gap-1">
-                <input type="checkbox" className="rounded border-gray-300" checked={visibleCols.constraint} onChange={(e) => setVisibleCols(v => ({ ...v, constraint: e.target.checked }))} />
-                <span>constraint</span>
-              </label>
+      {currentStep === 1 && (
+        <Card title="Combination Selection" description="Select model → data size → task, then click Search">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div>
+              <label className="block mb-1 text-sm text-gray-700 dark:text-gray-300">Model</label>
+              <select
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                disabled={loadingCombos || modelOptions.length === 0}
+              >
+                <option value="">Select</option>
+                {modelOptions.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
             </div>
-            <Button variant="secondary" size="sm" onClick={exportJSON} disabled={results.length === 0}>Export JSON</Button>
+            <div>
+              <label className="block mb-1 text-sm text-gray-700 dark:text-gray-300">Data size</label>
+              <select
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
+                value={selectedDataSize}
+                onChange={(e) => setSelectedDataSize(e.target.value ? Number(e.target.value) : '')}
+                disabled={!selectedModel || dataSizeOptions.length === 0}
+              >
+                <option value="">Select</option>
+                {dataSizeOptions.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block mb-1 text-sm text-gray-700 dark:text-gray-300">Target task</label>
+              <select
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
+                value={selectedTask}
+                onChange={(e) => setSelectedTask(e.target.value)}
+                disabled={!selectedModel || !selectedDataSize || taskOptions.length === 0}
+              >
+                <option value="">Select</option>
+                {taskOptions.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleSearch} disabled={!canSearch} loading={loadingSearch} className="w-full">Search</Button>
+            </div>
           </div>
-        </div>
-        {bestInfo && (
-          <div className="mb-4 flex flex-wrap gap-2">
-            {(['programming','math','creativeWriting','grammar','history'] as const).map((k) => (
-              typeof bestInfo[k] !== 'undefined' ? (
-                <span key={k} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200 text-xs">
-                  <span className="font-medium">{labelize(k)}</span>
-                  <span className="px-2 py-0.5 rounded-md bg-white/70 dark:bg-gray-800/60 text-gray-800 dark:text-gray-100 border border-blue-200 dark:border-blue-800">
-                    {bestInfo[k]}
+        </Card>
+      )}
+
+      {currentStep === 2 && (
+        <Card title="Search Results" description="Preview as table and export JSON">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              {results.length ? `Total ${(totalCount ?? results.length)} items` : 'No results'}
+            </p>
+            <div className="flex items-center gap-4">
+              {/* Page size selector */}
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-600 dark:text-gray-300">Rows per page</span>
+                <select
+                  className="rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-1 text-sm"
+                  value={pageSize}
+                  onChange={(e) => setPageSize(parseInt(e.target.value))}
+                >
+                  {[10,20,50,100].map(sz => (
+                    <option key={sz} value={sz}>{sz}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-3 text-xs text-gray-700 dark:text-gray-300">
+                <label className="inline-flex items-center gap-1">
+                  <input type="checkbox" className="rounded border-gray-300" checked={visibleCols.inputs} onChange={(e) => setVisibleCols(v => ({ ...v, inputs: e.target.checked }))} />
+                  <span>inputs</span>
+                </label>
+                <label className="inline-flex items-center gap-1">
+                  <input type="checkbox" className="rounded border-gray-300" checked={visibleCols.input} onChange={(e) => setVisibleCols(v => ({ ...v, input: e.target.checked }))} />
+                  <span>input</span>
+                </label>
+                <label className="inline-flex items-center gap-1">
+                  <input type="checkbox" className="rounded border-gray-300" checked={visibleCols.output} onChange={(e) => setVisibleCols(v => ({ ...v, output: e.target.checked }))} />
+                  <span>output</span>
+                </label>
+                <label className="inline-flex items-center gap-1">
+                  <input type="checkbox" className="rounded border-gray-300" checked={visibleCols.instruction} onChange={(e) => setVisibleCols(v => ({ ...v, instruction: e.target.checked }))} />
+                  <span>instruction</span>
+                </label>
+                <label className="inline-flex items-center gap-1">
+                  <input type="checkbox" className="rounded border-gray-300" checked={visibleCols.constraint} onChange={(e) => setVisibleCols(v => ({ ...v, constraint: e.target.checked }))} />
+                  <span>constraint</span>
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="secondary" size="sm" onClick={exportJSON} disabled={results.length === 0}>Export JSON</Button>
+                <Button variant="outline" size="sm" onClick={() => setCurrentStep(1)}>Back to Selection</Button>
+              </div>
+            </div>
+          </div>
+          {bestInfo && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              {(['programming','math','creativeWriting','grammar','history'] as const).map((k) => (
+                typeof bestInfo[k] !== 'undefined' ? (
+                  <span key={k} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200 text-xs">
+                    <span className="font-medium">{labelize(k)}</span>
+                    <span className="px-2 py-0.5 rounded-md bg-white/70 dark:bg-gray-800/60 text-gray-800 dark:text-gray-100 border border-blue-200 dark:border-blue-800">
+                      {bestInfo[k]}
+                    </span>
                   </span>
-                </span>
-              ) : null
-            ))}
-          </div>
-        )}
-        <ResultTable items={results} />
-        {results.length > 0 && (
-          <details className="mt-4">
-            <summary className="cursor-pointer text-sm text-gray-700 dark:text-gray-300">원본 JSON 보기</summary>
-            <pre className="mt-2 max-h-96 overflow-auto text-xs bg-gray-50 dark:bg-gray-900 p-3 rounded-md text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700">{JSON.stringify(results, null, 2)}</pre>
-          </details>
-        )}
-      </Card>
+                ) : null
+              ))}
+            </div>
+          )}
+          <ResultTable items={pagedItems} />
+          {/* Pagination bar */}
+          {totalPages > 1 && (
+            <div className="mt-4 flex flex-col items-center gap-2">
+              <div className="flex items-center gap-1">
+                <button
+                  className={`px-3 py-1 rounded border text-sm ${page === 1 ? 'cursor-not-allowed opacity-60 border-gray-200 dark:border-gray-700' : 'border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  Prev
+                </button>
+                {getPageButtons(page, totalPages).map((b, i) => (
+                  b === '…' ? (
+                    <span key={`ellipsis-${i}`} className="px-2 text-gray-500">…</span>
+                  ) : (
+                    <button
+                      key={b}
+                      className={`px-3 py-1 rounded border text-sm ${b === page ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900/20 dark:text-blue-200' : 'border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                      onClick={() => setPage(b as number)}
+                    >
+                      {b}
+                    </button>
+                  )
+                ))}
+                <button
+                  className={`px-3 py-1 rounded border text-sm ${page === totalPages ? 'cursor-not-allowed opacity-60 border-gray-200 dark:border-gray-700' : 'border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  Next
+                </button>
+              </div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">
+                Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalItems)} of {totalItems}
+              </div>
+            </div>
+          )}
+          {results.length > 0 && (
+            <details className="mt-4">
+              <summary className="cursor-pointer text-sm text-gray-700 dark:text-gray-300">Show raw JSON</summary>
+              <pre className="mt-2 max-h-96 overflow-auto text-xs bg-gray-50 dark:bg-gray-900 p-3 rounded-md text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700">{JSON.stringify(results, null, 2)}</pre>
+            </details>
+          )}
+        </Card>
+      )}
     </div>
   );
 };
