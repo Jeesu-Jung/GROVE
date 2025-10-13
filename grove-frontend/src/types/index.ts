@@ -89,8 +89,8 @@ export interface AppState {
 }
 
 export type LLMModel =
-  | 'claude-3-sonnet'
-  | 'claude-3-opus'
+  | 'claude-sonnet-4-20250514'
+  | 'claude-opus-4-20250514'
   | 'gpt-4'
   | 'gpt-4-turbo'
   | 'gpt-5'

@@ -23,8 +23,8 @@ import { exportToJSON, exportToCSV } from '../utils/dataProcessing';
 import { LLMModel, DatasetRow, InstructionAssignment } from '../types';
 
 const MODELS: { id: LLMModel; name: string; provider: string }[] = [
-  { id: 'claude-3-sonnet', name: 'Claude 3 Sonnet', provider: 'Anthropic' },
-  { id: 'claude-3-opus', name: 'Claude 3 Opus', provider: 'Anthropic' },
+  { id: 'claude-sonnet-4-20250514', name: 'Claude 4 Sonnet', provider: 'Anthropic' },
+  { id: 'claude-opus-4-20250514', name: 'Claude 4 Opus', provider: 'Anthropic' },
   { id: 'gpt-4', name: 'GPT-4', provider: 'OpenAI' },
   { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', provider: 'OpenAI' },
   { id: 'gpt-5', name: 'GPT-5', provider: 'OpenAI' },
