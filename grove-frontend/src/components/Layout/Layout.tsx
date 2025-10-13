@@ -58,13 +58,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   }}
                 >
                   <option value="/" className="text-gray-900">
-                    Dataset Visualization and Selection
+                    Dataset Visualization and Selection (GROVE)
                   </option>
                   <option value="/optimization" className="text-gray-900">
                     Optimized Task-Mixture Design
                   </option>
                   <option value="/binarization" className="text-gray-900">
-                    Automatic Data Binarization
+                    Automatic Data Binarization (ZEBRA)
                   </option>
                 </select>
               </div>
