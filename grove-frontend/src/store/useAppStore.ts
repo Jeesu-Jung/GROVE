@@ -22,7 +22,7 @@ const initialState: AppState = {
   domainAnalysis: null,
   sampledDataset: null,
   llmApiKey: '',
-  selectedModel: 'claude-3-sonnet',
+  selectedModel: 'claude-sonnet-4-20250514',
   isProcessing: false,
   error: null,
 };
