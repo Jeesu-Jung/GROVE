@@ -34,6 +34,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     setError(null);
   }, [location.pathname, setError]);
 
+  const weaveLabel = React.useMemo(() => {
+    if (selectedPath === '/optimization') return 'WEAVE-TASK MIXTURE';
+    if (selectedPath === '/binarization') return 'WEAVE-ZEBRA';
+    return 'WEAVE-GROVE';
+  }, [selectedPath]);
+
+  React.useEffect(() => {
+    document.title = weaveLabel;
+  }, [weaveLabel]);
+
   return (
     <div className={`min-h-screen transition-colors duration-300 bg-gradient-to-br from-blue-50 via-white to-purple-50`}>
       {/* Header */}
@@ -43,7 +53,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <img src={iconUrl} alt="WEAVE icon" className="w-[72px] h-[72px] object-contain" />
             <div>
               <h1 className="text-xl font-bold text-gray-900">
-              WEAVE
+            {weaveLabel}
               </h1>
               <div className="mt-0.5">
                 <select
