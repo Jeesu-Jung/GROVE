@@ -1,5 +1,6 @@
 import React from 'react';
 import { ProgressIndicator } from './ProgressIndicator';
+import { Footer } from './Footer';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { useBinarizationStore } from '../../store/useBinarizationStore';
@@ -45,7 +46,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, [weaveLabel]);
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 bg-gradient-to-br from-blue-50 via-white to-purple-50`}>
+    <div className={`min-h-screen flex flex-col transition-colors duration-300 bg-gradient-to-br from-blue-50 via-white to-purple-50`}>
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -97,9 +98,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       )}
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 pb-12">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-6 pb-12">
         {children}
       </main>
+      <Footer />
     </div>
   );
 };
