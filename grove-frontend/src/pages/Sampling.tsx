@@ -7,7 +7,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts';
-import { Download, Shuffle, Target, Copy, ArrowUp, ArrowDown, Activity } from 'lucide-react';
+import { Download, Shuffle, Target, Copy, ArrowUp, ArrowDown, Activity, Info } from 'lucide-react';
 import { Card } from '../components/UI/Card';
 import { Button } from '../components/UI/Button';
 import { useAppStore } from '../store/useAppStore';
@@ -789,7 +789,7 @@ export const Sampling: React.FC = () => {
       </Card>
 
       {/* Data-centric + Model-centric Sampling (visual only) */}
-      <Card title="Data-centric + Model-centric Sampling" description="Choose how to sample your dataset">
+      <Card title="Data-centric + Model-centric Sampling" description="Choose how to sample your dataset" className="relative z-[100]">
         <div className="space-y-4">
           {/* Target Model selector (visual only) */}
           <div className="flex items-center gap-3">
@@ -808,6 +808,20 @@ export const Sampling: React.FC = () => {
             {isScoring || hasScore ? (
               <span className="text-sm text-gray-600 dark:text-gray-400 min-w-[48px] text-right">{scoreProgress}%</span>
             ) : null}
+            {/* Variability Score tooltip */}
+            <div className="relative group ml-1 z-[999]">
+              <Info className="w-5 h-5 text-gray-500 hover:text-gray-700" />
+              <div className="absolute top-full right-0 mt-2 w-[340px] sm:w-[420px] p-3 rounded-lg shadow-xl border border-gray-200 bg-white text-gray-700 text-[16px] leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none group-hover:pointer-events-auto z-[9999] transform translate-x-[12px]">
+                {/* arrow */}
+                <span className="absolute -top-2 right-[16px] w-3 h-3 bg-white border-l border-t border-gray-200 rotate-45"></span>
+                <p className="mb-2">
+                  <strong>Variability Score</strong> quantifies how diversely an instruction elicits internal representations across layers of a language model. It is computed as the <strong>average Jensen–Shannon divergence</strong> between activation distributions of different layers, capturing the semantic spread or representation variability of a prompt.
+                </p>
+                <p>
+                  A higher score indicates richer, more informative instructions that engage broader model capacities.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Difficulty options with radio (single-select) */}
