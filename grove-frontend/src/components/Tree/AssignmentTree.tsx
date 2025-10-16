@@ -118,6 +118,53 @@ export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dat
     return Math.max(240, Math.round(maxW + baseGap));
   }, [data, estimateBoxWidth]);
 
+  // depth별 부모 노드의 직접 자식 수 통계와 가변적 bin 경계 계산
+  const depthBins = React.useMemo(() => {
+    // depth d의 부모 노드들이 가진 children.length 분포를 수집
+    const perDepthCounts = new Map<number, number[]>();
+    const walk = (node: TreeNode, depth: number) => {
+      const childLen = node.children?.length ?? 0;
+      const arr = perDepthCounts.get(depth) || [];
+      arr.push(childLen);
+      perDepthCounts.set(depth, arr);
+      node.children?.forEach((child) => walk(child, depth + 1));
+    };
+    walk(data, 0);
+
+    // 각 depth에서 값 분포에 따라 3~5단계로 동적 bin 생성 (값의 다양성에 따라 단계 수 가변)
+    const computeThresholds = (values: number[]) => {
+      if (values.length === 0) return [] as number[];
+      const unique = Array.from(new Set(values)).sort((a, b) => a - b);
+      const uniqueCount = unique.length;
+      // 최소 3단계, 최대 5단계. 고유값이 적으면 단계 축소
+      const desiredBins = Math.max(3, Math.min(5, uniqueCount));
+      if (desiredBins <= 1) return [unique[0]];
+      // 분위수 기반 경계 계산
+      const sorted = [...values].sort((a, b) => a - b);
+      const quantile = (p: number) => {
+        const idx = (sorted.length - 1) * p;
+        const lo = Math.floor(idx);
+        const hi = Math.ceil(idx);
+        const w = idx - lo;
+        return (1 - w) * sorted[lo] + w * sorted[hi];
+      };
+      const steps = desiredBins - 1; // 경계 개수
+      const thresholds: number[] = [];
+      for (let i = 1; i <= steps; i++) {
+        thresholds.push(Math.round(quantile(i / desiredBins)));
+      }
+      // 단조 증가 보장 및 중복 제거
+      const dedup = Array.from(new Set(thresholds)).sort((a, b) => a - b);
+      return dedup;
+    };
+
+    const map = new Map<number, number[]>();
+    perDepthCounts.forEach((vals, d) => {
+      map.set(d, computeThresholds(vals));
+    });
+    return map;
+  }, [data]);
+
   const handleNodeClick = (nodeDatum: any) => {
     const payload = (nodeDatum as any).__payload as TreeNode['__payload'];
     if (payload?.assignment && onLeafClick) {
@@ -307,6 +354,12 @@ export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dat
           stroke-linecap: round !important;
           stroke-linejoin: round !important;
         }
+        /* tier별 동적 두께 (depth별 상대 비교 기반) */
+        path.rd3t-link.tier-0 { stroke-width: 1.4 !important; }
+        path.rd3t-link.tier-1 { stroke-width: 2.0 !important; }
+        path.rd3t-link.tier-2 { stroke-width: 2.6 !important; }
+        path.rd3t-link.tier-3 { stroke-width: 3.4 !important; }
+        path.rd3t-link.tier-4 { stroke-width: 4.4 !important; }
       `}</style>
       {showExportButton && (
         <div className="absolute top-3 right-3 z-10">
@@ -327,6 +380,32 @@ export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dat
         pathFunc={horizontalEdgePath as any}
         depthFactor={depthFactor}
         collapsible={false}
+        // 링크마다 두께 클래스를 부여
+        // 일반 규칙: 부모의 자식 수를 기준으로 층별 상대 비교
+        // 예외(루트→작업): 루트에서 작업으로 가는 엣지는 작업 노드의 자식 수(=다음 단계 가지 수)를 기준으로 계산하여
+        // 작업→도메인 엣지들과 동일 tier가 되도록 맞춘다
+        pathClassFunc={(link) => {
+          const sourceDepth = (link.source.depth ?? 0) as number;
+          let referenceDepth = sourceDepth;
+          let childCount: number;
+          if (sourceDepth === 0) {
+            // 루트→작업: 작업 노드(타겟)의 자식 수와 depth=1의 분포를 사용
+            referenceDepth = (link.target.depth ?? 1) as number;
+            childCount = (link.target.data?.children?.length ?? 0) as number;
+          } else {
+            // 그 외: 부모 노드의 자식 수와 부모 depth의 분포를 사용
+            childCount = (link.source.data?.children?.length ?? 0) as number;
+          }
+          const thresholds = depthBins.get(referenceDepth) || [];
+          // thresholds: 오름차순. 구간에 따라 tier 결정 (0..N)
+          let tier = 0;
+          for (let i = 0; i < thresholds.length; i++) {
+            if (childCount > thresholds[i]) tier = i + 1;
+          }
+          // 최대 tier를 0..4로 클램프 (CSS에서 5단계까지 대응)
+          const clamped = Math.max(0, Math.min(4, tier));
+          return `rd3t-link tier-${clamped}`;
+        }}
         renderCustomNodeElement={({ nodeDatum }) => {
           const isRoot = !(nodeDatum as any).parent;
           const payload = (nodeDatum as any).__payload as TreeNode['__payload'];
