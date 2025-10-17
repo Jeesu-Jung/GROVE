@@ -7,3 +7,8 @@ server:
 
 openai:
   api-key: "sk-proj-1234"
+
+milvus:
+  uri: "http://127.0.0.1:19530"
+  collection: "weavy_test"
+  dimension: 384

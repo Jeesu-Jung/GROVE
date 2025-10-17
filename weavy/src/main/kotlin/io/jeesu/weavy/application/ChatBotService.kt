@@ -19,7 +19,6 @@ import dev.langchain4j.rag.content.retriever.ContentRetriever
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever
 import dev.langchain4j.service.AiServices
 import dev.langchain4j.store.embedding.EmbeddingStore
-import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore
 import io.jeesu.weavy.domain.Assistant
 import io.jeesu.weavy.infrastucture.util.Utils.toPath
 import org.springframework.beans.factory.annotation.Value
@@ -27,7 +26,8 @@ import org.springframework.stereotype.Service
 
 @Service
 class ChatBotService(
-    @Value("\${openai.api-key}") private val openaiApiKey: String
+    @Value("\${openai.api-key}") private val openaiApiKey: String,
+    private val embeddingStore: EmbeddingStore<TextSegment>
 ) {
 
     private val assistant: Assistant = createAssistant("documents/weave-document.txt")
@@ -49,7 +49,6 @@ class ChatBotService(
         val embeddingModel: EmbeddingModel = BgeSmallEnV15QuantizedEmbeddingModel()
         val embeddings: List<Embedding> = embeddingModel.embedAll(segments).content()
 
-        val embeddingStore: EmbeddingStore<TextSegment> = InMemoryEmbeddingStore()
         embeddingStore.addAll(embeddings, segments)
 
         val contentRetriever: ContentRetriever = EmbeddingStoreContentRetriever.builder()

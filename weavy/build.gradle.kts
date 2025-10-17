@@ -30,6 +30,7 @@ dependencies {
     implementation("dev.langchain4j:langchain4j:1.7.1")
     implementation("dev.langchain4j:langchain4j-open-ai:1.7.1")
     implementation("dev.langchain4j:langchain4j-embeddings-bge-small-en-v15-q:1.7.1-beta14")
+    implementation("dev.langchain4j:langchain4j-milvus:1.7.1-beta14")
 }
 
 kotlin {
