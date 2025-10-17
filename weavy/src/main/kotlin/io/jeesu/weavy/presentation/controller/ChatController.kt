@@ -18,7 +18,7 @@ class ChatController(
 
     @PostMapping("/chat")
     fun chat(@RequestBody req: ChatRequest): ResponseEntity<ChatResponse> {
-        val answer = chatBotService.answer(req.query)
+        val answer = chatBotService.answer(req.query, req.id)
         return ResponseEntity.ok(ChatResponse(answer))
     }
 

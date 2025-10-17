@@ -18,28 +18,37 @@ import dev.langchain4j.service.AiServices
 import dev.langchain4j.store.embedding.EmbeddingStore
 import io.jeesu.weavy.domain.Assistant
 import io.jeesu.weavy.infrastucture.util.Utils.toPath
+import com.github.benmanes.caffeine.cache.Caffeine
+import java.time.Duration
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 
 @Service
 class ChatBotService(
     private val chatModel: ChatModel,
     private val embeddingModel: EmbeddingModel,
-    private val embeddingStore: EmbeddingStore<TextSegment>
+    private val embeddingStore: EmbeddingStore<TextSegment>,
+    @Value("\${chat.memory.windowSize:10}") private val windowSize: Int,
+    @Value("\${chat.memory.ttlMinutes:30}") private val ttlMinutes: Long,
+    @Value("\${chat.memory.maxSessions:10000}") private val maxSessions: Long
 ) {
+    private val assistantCache = Caffeine.newBuilder()
+        .maximumSize(maxSessions)
+        .expireAfterAccess(Duration.ofMinutes(ttlMinutes))
+        .build<String, Assistant>()
 
-    private val assistant: Assistant = createAssistant()
+    fun answer(query: String?, id: String): String {
+        val assistant = assistantCache.get(id) { createAssistantWithMemory(MessageWindowChatMemory.withMaxMessages(windowSize)) }
+        return assistant.answer(query)
+    }
 
-    fun answer(query: String?): String = assistant.answer(query)
-
-    private fun createAssistant(): Assistant {
+    private fun createAssistantWithMemory(chatMemory: ChatMemory): Assistant {
         val contentRetriever: ContentRetriever = EmbeddingStoreContentRetriever.builder()
             .embeddingStore(embeddingStore)
             .embeddingModel(embeddingModel)
             .maxResults(2)
             .minScore(0.5)
             .build()
-
-        val chatMemory: ChatMemory = MessageWindowChatMemory.withMaxMessages(10)
 
         return AiServices.builder(Assistant::class.java)
             .chatModel(chatModel)
