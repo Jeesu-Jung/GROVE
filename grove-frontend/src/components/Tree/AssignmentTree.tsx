@@ -131,13 +131,13 @@ export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dat
     };
     walk(data, 0);
 
-    // 각 depth에서 값 분포에 따라 3~5단계로 동적 bin 생성 (값의 다양성에 따라 단계 수 가변)
+    // 각 depth에서 값 분포에 따라 3~7단계로 동적 bin 생성 (값의 다양성에 따라 단계 수 가변)
     const computeThresholds = (values: number[]) => {
       if (values.length === 0) return [] as number[];
       const unique = Array.from(new Set(values)).sort((a, b) => a - b);
       const uniqueCount = unique.length;
-      // 최소 3단계, 최대 5단계. 고유값이 적으면 단계 축소
-      const desiredBins = Math.max(3, Math.min(5, uniqueCount));
+      // 최소 3단계, 최대 7단계. 고유값이 적으면 단계 축소
+      const desiredBins = Math.max(3, Math.min(7, uniqueCount));
       if (desiredBins <= 1) return [unique[0]];
       // 분위수 기반 경계 계산
       const sorted = [...values].sort((a, b) => a - b);
@@ -154,6 +154,53 @@ export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dat
         thresholds.push(Math.round(quantile(i / desiredBins)));
       }
       // 단조 증가 보장 및 중복 제거
+      const dedup = Array.from(new Set(thresholds)).sort((a, b) => a - b);
+      return dedup;
+    };
+
+    const map = new Map<number, number[]>();
+    perDepthCounts.forEach((vals, d) => {
+      map.set(d, computeThresholds(vals));
+    });
+    return map;
+  }, [data]);
+
+  // 도메인(leaf) 노드의 attributes.count 분포로부터 depth별 임계값 계산
+  const leafCountBins = React.useMemo(() => {
+    const perDepthCounts = new Map<number, number[]>();
+    const walk = (node: TreeNode, depth: number) => {
+      const isLeaf = !node.children || node.children.length === 0;
+      if (isLeaf) {
+        const c = node.attributes?.count;
+        if (typeof c === 'number' && Number.isFinite(c)) {
+          const arr = perDepthCounts.get(depth) || [];
+          arr.push(c as number);
+          perDepthCounts.set(depth, arr);
+        }
+      }
+      node.children?.forEach((child) => walk(child, depth + 1));
+    };
+    walk(data, 0);
+
+    const computeThresholds = (values: number[]) => {
+      if (values.length === 0) return [] as number[];
+      const unique = Array.from(new Set(values)).sort((a, b) => a - b);
+      const uniqueCount = unique.length;
+      const desiredBins = Math.max(3, Math.min(7, uniqueCount));
+      if (desiredBins <= 1) return [unique[0]];
+      const sorted = [...values].sort((a, b) => a - b);
+      const quantile = (p: number) => {
+        const idx = (sorted.length - 1) * p;
+        const lo = Math.floor(idx);
+        const hi = Math.ceil(idx);
+        const w = idx - lo;
+        return (1 - w) * sorted[lo] + w * sorted[hi];
+      };
+      const steps = desiredBins - 1;
+      const thresholds: number[] = [];
+      for (let i = 1; i <= steps; i++) {
+        thresholds.push(Math.round(quantile(i / desiredBins)));
+      }
       const dedup = Array.from(new Set(thresholds)).sort((a, b) => a - b);
       return dedup;
     };
@@ -360,6 +407,8 @@ export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dat
         path.rd3t-link.tier-2 { stroke-width: 2.6 !important; }
         path.rd3t-link.tier-3 { stroke-width: 3.4 !important; }
         path.rd3t-link.tier-4 { stroke-width: 4.4 !important; }
+        path.rd3t-link.tier-5 { stroke-width: 5.6 !important; }
+        path.rd3t-link.tier-6 { stroke-width: 7.0 !important; }
       `}</style>
       {showExportButton && (
         <div className="absolute top-3 right-3 z-10">
@@ -381,29 +430,38 @@ export const AssignmentTree: React.FC<AssignmentTreeProps> = ({ assignments, dat
         depthFactor={depthFactor}
         collapsible={false}
         // 링크마다 두께 클래스를 부여
-        // 일반 규칙: 부모의 자식 수를 기준으로 층별 상대 비교
-        // 예외(루트→작업): 루트에서 작업으로 가는 엣지는 작업 노드의 자식 수(=다음 단계 가지 수)를 기준으로 계산하여
-        // 작업→도메인 엣지들과 동일 tier가 되도록 맞춘다
+        // 1) 타겟이 leaf(도메인)인 경우: 도메인 데이터 수(attributes.count) 기준, 해당 depth의 leaf 분포 사용
+        // 2) 루트→작업: 타겟의 자식 수 기준, depth=1의 분포 사용(작업→도메인과 일치)
+        // 3) 그 외: 부모의 자식 수 기준, 부모 depth의 분포 사용
         pathClassFunc={(link) => {
           const sourceDepth = (link.source.depth ?? 0) as number;
-          let referenceDepth = sourceDepth;
-          let childCount: number;
-          if (sourceDepth === 0) {
-            // 루트→작업: 작업 노드(타겟)의 자식 수와 depth=1의 분포를 사용
-            referenceDepth = (link.target.depth ?? 1) as number;
-            childCount = (link.target.data?.children?.length ?? 0) as number;
+          const targetDepth = (link.target.depth ?? sourceDepth + 1) as number;
+          const isTargetLeaf = !link.target.data?.children || link.target.data?.children.length === 0;
+
+          let value = 0;
+          let thresholds: number[] = [];
+
+          if (isTargetLeaf) {
+            // 도메인: attributes.count 기준
+            const count = link.target.data?.attributes?.count;
+            value = typeof count === 'number' ? count : 0;
+            thresholds = leafCountBins.get(targetDepth) || [];
+          } else if (sourceDepth === 0) {
+            // 루트→작업: 타겟의 children 수 기준, depth=1 분포 사용
+            value = (link.target.data?.children?.length ?? 0) as number;
+            thresholds = depthBins.get(targetDepth) || [];
           } else {
-            // 그 외: 부모 노드의 자식 수와 부모 depth의 분포를 사용
-            childCount = (link.source.data?.children?.length ?? 0) as number;
+            // 일반: 부모의 children 수 기준
+            value = (link.source.data?.children?.length ?? 0) as number;
+            thresholds = depthBins.get(sourceDepth) || [];
           }
-          const thresholds = depthBins.get(referenceDepth) || [];
           // thresholds: 오름차순. 구간에 따라 tier 결정 (0..N)
           let tier = 0;
           for (let i = 0; i < thresholds.length; i++) {
-            if (childCount > thresholds[i]) tier = i + 1;
+            if (value > thresholds[i]) tier = i + 1;
           }
-          // 최대 tier를 0..4로 클램프 (CSS에서 5단계까지 대응)
-          const clamped = Math.max(0, Math.min(4, tier));
+          // 최대 tier를 0..6으로 클램프 (CSS에서 7단계까지 대응)
+          const clamped = Math.max(0, Math.min(6, tier));
           return `rd3t-link tier-${clamped}`;
         }}
         renderCustomNodeElement={({ nodeDatum }) => {
