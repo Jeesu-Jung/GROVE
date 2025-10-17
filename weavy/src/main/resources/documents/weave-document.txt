@@ -1,0 +1,189 @@
+6.
+WEAVE: Operationalizing Selection, Analysis and
+Binarization
+6.1 Introduction
+We present a no-code user interface that operationalizes the three components of this
+thesis—GROVE (visualized selection), Task-Mixture (task composition and analysis),
+and ZEBRA (behavior-level binarization)—into a single workflow that enables users to
+construct instruction and alignment datasets with near-zero marginal cost (∼$0) and with-
+out writing code. Concretely, the interface provides (i) point-and-click dataset visualiza-
+tion and filtering (OAK Tree, layer-wise JSD variability), (ii) an interactive designer for
+budget-aware task mixtures with immediate feedback on expected trade-offs, and (iii) a
+binarization panel that derives preference pairs from model-behavior profiles (SUP/SIM)
+rather than instance-wise labels. This lowers the barrier for non-programmers and domain
+experts (e.g., education, law, healthcare) to curate, diagnose, and iteratively refine datasets
+tailored to their own tasks, while preserving the reproducibility and traceability required
+for research and production.
+Unlike prior data interfaces that target web-scale pretraining curation, our UI is purpose-
+built for instruction and alignment tuning. It exposes interpretable, human-controllable
+101
+strata (verb-anchored OAK groups) alongside model-centric signals (variability from layer-
+wise divergence), turning abstract analysis into actionable controls. Each operation pro-
+duces a versioned artifact (subset indices, mixture recipes, and binarized pairs) that can
+be exported for SFT/DPO pipelines and revisited later, enabling no-code, cost-efficient,
+and human-in-the-loop dataset engineering consistent with the goals of this dissertation.
+WEAVE thus functions as an accessible workbench: it makes the “analyze →select/compose
+→binarize” loop executable by any practitioner, not just engineers, while adhering to the
+empirical principles established in Chapters 3– 5.
+6.2 Related Works
+6.2.1 LLM Training Data Management Tools
+Several pipelines have been proposed for managing data used in large-scale language model
+training. These systems primarily focus on data curation, cleaning, and augmentation for
+the pretraining stage. Because LLM pretraining typically requires over 3 trillion tokens,
+it is infeasible for engineers to manually inspect and filter the data. Recent frameworks
+aim to standardize the preprocessing steps into modular pipelines compatible with dif-
+ferent model architectures and training objectives, thereby ensuring reproducibility and
+scalability.
+6.2.2 UI/CLI Tools for Data Filtering & Editing
+Post-collection curation for LLM datasets is supported by mature tools that focus on fil-
+tering, editing, and augmentation. For filtering & de-duplication, Mou’s text-dedup
+offers a unified CLI for exact/near-duplicate removal with native datasets support [49],
+and Lee et al. show that deduplicating large corpora improves generalization and reduces
+memorization at scale [36]. Editing pipelines increasingly include policy/PII redaction;
+102
+Microsoft’s Presidio provides configurable detection and anonymization components suit-
+able for pre-SFT scrubbing [47]. For augmentation, Morris et al.’s TextAttack frame-
+work supplies lexical/syntactic/semantic transforms and composable recipes [48], Ma’s nl-
+paug implements lightweight augmentation operators for text [44], and Ribeiro et al.’s
+NL-Augmenter aggregates task-aware transformations and filters for robustness analysis
+[64]. Together, these tools enable reproducible, UI/CLI-driven refinement prior to instruc-
+tion tuning and complement our GROVE/Task-Mixture/ZEBRA workflow.
+6.3 System Overview and Design Goals
+Large language models require efficient and interpretable data workflows. The WEAVE
+System provides an integrated environment for conducting the analyses introduced in
+Chapters 3– 5, namely GROVE (visualized data selection), Task-Mixture (task composi-
+tion), and ZEBRA (preference binarization). Its goals are threefold: (1) unify data anal-
+ysis and selection across modules; (2) enable visual, human-in-the-loop exploration; and
+(3) ensure experiment traceability and reproducibility.
+6.3.1 Design Objectives
+• Unified Access: Connect all analytical modules under a single interface.
+• Cost Efficiency: Because all of our modules are designed for cost-efficient data
+analysis and optimization, we focused on maximizing their effectiveness under tight
+compute and budget constraints.
+• Faster Visual Feedback: Provide dashboards for OAK Tree structures, variabil-
+ity distributions, and mixture outcomes, delivering results as quickly as possible by
+leveraging caching and related optimizations.
+Figure 6.1: Overall architecture of the WEAVE System, integrating GROVE, Task-
+Mixture, and ZEBRA modules.
+• Reproducibility: Automatically log experiment configurations and export datasets
+with metadata.
+6.3.2 System Architecture Overview
+Figure 6.1 illustrates the overall workflow: raw instruction data →GROVE (grouping and
+variability estimation) →Task-Mixture (composition optimization) →ZEBRA (behavior-
+level binarization) →export for SFT or alignment training.
+The overall system implementation and the interaction between the front-end and back-
+end layers are illustrated in Figure 6.2.
+Figure 6.2: Overall architecture of the WEAVE system, integrating the GROVE, Task-
+Mixture, and ZEBRA modules. The diagram illustrates the interaction between the front-
+end and back-end layers. In ZEBRA, Step 2 performs model pairing, and Steps 3–4 carry
+out the response generation process.
+6.4 System Architecture
+6.4.1 Frontend Layer
+Implemented using React, the frontend organizes the system into three primary panels:
+(1) the Dataset Visualization and Selection Module, which displays the OAK Tree
+structure and layer-wise variability scores for GROVE; (2) the Optimized Task-Mixture
+Designer, which supports interactive task composition and performance estimation; and
+(3) the ZEBRA Binarizer, which enables zero-annotation preference generation through
+model-behavior profiling.
+The user interface flow and functionality of each panel are illustrated in Figures 6.3, 6.4,
+105
+and 6.5, respectively. These figures demonstrate how users can visually analyze datasets,
+configure mixtures, and perform alignment binarization through an intuitive, no-code work-
+flow.
+During implementation, we leveraged modern development assistants such as Cursor1
+and Bolt.new2 to accelerate interface prototyping and ensure seamless integration with
+the backend. Their assistance allowed for rapid iteration on design components and real-
+time debugging, making the overall development cycle highly efficient.
+6.4.2 Backend Layer
+The backend was implemented using Spring Boot and FastAPI, integrating the ex-
+perimental findings from Chapters 3–5 to enable efficient data selection and binarization.
+While the overall server framework was developed primarily in Kotlin, computational
+components such as the JSD (Jensen–Shannon Divergence) calculation and other numeri-
+cal operations were implemented in Python for better flexibility and integration with ex-
+isting machine learning libraries.
+To minimize manual configuration, the backend was designed to accept user-provided
+API keys (e.g., from OpenAI or OpenRouter) at runtime. This allows all external model
+calls to be handled securely and dynamically without requiring code-level edits, making
+the system accessible for both research and lightweight production use.
+The backend handles the following core functionalities:
+• Computation of variability scores and caching of verb-group metrics.
+• Querying, logging, and management of task mixtures along with associated meta-
+data.
+ Generation, validation, and storage of ZEBRA preference pairs for alignment datasets.
+This modular design ensures that computationally intensive processes (e.g., variabil-
+ity analysis, embedding retrieval, and preference generation) remain efficient and scalable,
+while data exchange between components (GROVE, Task-Mixture, and ZEBRA) occurs
+seamlessly through standardized REST APIs.
+6.4.3 Data Schema
+In this study, we constructed databases based on the experimental settings reported in
+Chapters 4, 3, and 5, in order to support embedding-based retrieval using seed sentences
+from the Task-Mixture module. Specifically, we built a vector database for the Task-
+Mixture Designer and designed caching databases for GROVE and ZEBRA to opti-
+mize data access efficiency.
+For the Task-Mixture Designer, we employed Milvus DB (version 2.6.2), a high-performance
+vector database. Each record consisted of the following fields: id (primary key, auto-
+generated), vector (a 1536-dimensional float vector), sentence (a string with a maximum
+length of 2048), and type (a string with a maximum length of 512). This schema supports
+rapid semantic search and embedding retrieval for task mixture exploration.
+For the GROVE and ZEBRA modules, we used a Redis caching database to reduce
+latency. When an identical input had been processed before, cached responses were served
+using a time-to-live (TTL) mechanism to ensure faster access and automatic cache expira-
+tion. This hybrid design—combining vector retrieval for semantic similarity and lightweight
+caching for repeated queries—enabled real-time responsiveness and cost-efficient interac-
+tion across all components of the WEAVE system.
+107
+6.4.4 Implementation Details
+The system was implemented with a React-based frontend and a hybrid backend architec-
+ture combining Kotlin 1.9.25 (JDK 21) with Spring Boot 3.5.6, and Python 3.11 for
+computational components. Model-level computations and numerical operations leverage
+PyTorch 2.2.1 and Transformers 4.28.1 for efficient embedding and variability analysis.
+All modules are containerized for deployment using Docker, and the system is fully
+operable on CPU-only environments—no GPU nodes are required.
+6.5 User Interface and Workflows
+6.5.1 Dataset Visualization (OAK Tree and variabilty score) and Se-
+lection Module
+Tree visualization of groups G, verbs V, and documents D. Users can expand nodes, view
+representative instructions, and observe each group’s mean variability ¯ sG.
+Interactive histograms and violin plots visualize variability across groups. Sliders allow
+selecting high-variability (HV), low-variability (LV), or mixed (MIX) subsets.
+6.5.2 Optimized Task-Mixture Designer
+Supports composition up to 5-task mixtures. Provides projected performance–cost plots
+and mixture proportion controls. All results link to the statistical analyses described in
+Chapter 4.
+6.5.3 Automatic Data Binarizer
+This module enables behavior-level preference generation. Users can upload benchmark
+profiles, select one of the SUP, SIM, or SUP+SIM modes (or a user-customized model
+108
+option), and generate preference pairs for alignment tuning pipelines. To implement this,
+we utilized the OpenRouter API.
+Unfortunately, most of the 17 models originally analyzed in UltraFeedback have since
+been updated to newer versions or discontinued. As a result, we decided to include only
+the GPT, Gemini, and LLaMA families of models. Our analysis indicates that models with
+similar architectures and scales tend to exhibit comparable behavior patterns. Therefore,
+this substitution allows ZEBRA to function properly without degradation.
+The final set of supported models is as follows: GPT-4, GPT-3.5-turbo, Gemini-2.5-
+flash, Llama-3.1-8b-instruct, Llama-4-maverick, and Llama-3.3-70b-instruct.
+6.6 Case Studies
+6.6.1 Case 1: Hybrid Selection via GROVE
+We demonstrate the selection of the top 50% of HV groups and measure benchmark gains
+compared to random sampling. Figure 6.3 illustrates an example flow of the user interface.
+6.6.2 Case 2: Task-Mixture Optimization
+This case provides the optimal domain composition for the model to be trained and the
+target task. Figure 6.4 illustrates an example flow of the user interface.
+6.6.3 Case 3: Preference Binarization with ZEBRA
+We generate SIM preference pairs from benchmark-derived behaviors. Figure 6.5 shows
+the process of simply generating a fully binarized dataset through zero-cost annotation.
+6.7 Discussion and Future Extensions
+Potential future extensions include:
+109
+• Integrating active-learning feedback from alignment loops.
+• Extending OAK Tree grouping to multilingual instructions.
+• Automating mixture parameter suggestions using Bayesian optimization.
+• Deploying WEAVE as a collaborative web service for research teams.
+• Adding an agent feature that provides goal-oriented guidance based on the user’s
+intent.
+6.8 Summary
+The WEAVE System consolidates the analytical methods introduced in Chap-
+ters 3– 5 into a reproducible, visual, and interactive environment. By turning
+abstract metrics into actionable controls, it enables transparent, efficient, and
+user-guided construction of instruction-tuning data.
