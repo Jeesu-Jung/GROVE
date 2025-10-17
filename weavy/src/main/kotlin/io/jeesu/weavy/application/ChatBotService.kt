@@ -27,21 +27,11 @@ class ChatBotService(
     private val embeddingStore: EmbeddingStore<TextSegment>
 ) {
 
-    private val assistant: Assistant = createAssistant("documents/weave-document.txt")
+    private val assistant: Assistant = createAssistant()
 
     fun answer(query: String?): String = assistant.answer(query)
 
-    private fun createAssistant(documentPath: String): Assistant {
-        val documentParser: DocumentParser = TextDocumentParser()
-        val document: Document = loadDocument(toPath(documentPath), documentParser)
-
-        val splitter: DocumentSplitter = DocumentSplitters.recursive(300, 0)
-        val segments: List<TextSegment> = splitter.split(document)
-
-        val embeddings: List<Embedding> = embeddingModel.embedAll(segments).content()
-
-        embeddingStore.addAll(embeddings, segments)
-
+    private fun createAssistant(): Assistant {
         val contentRetriever: ContentRetriever = EmbeddingStoreContentRetriever.builder()
             .embeddingStore(embeddingStore)
             .embeddingModel(embeddingModel)
@@ -56,5 +46,20 @@ class ChatBotService(
             .contentRetriever(contentRetriever)
             .chatMemory(chatMemory)
             .build()
+    }
+
+    fun ingestDocument(): Int {
+        val documentPath = "documents/weave-document.txt"
+        val documentParser: DocumentParser = TextDocumentParser()
+        val document: Document = loadDocument(toPath(documentPath), documentParser)
+
+        val splitter: DocumentSplitter = DocumentSplitters.recursive(300, 0)
+        val segments: List<TextSegment> = splitter.split(document)
+
+        val embeddings: List<Embedding> = embeddingModel.embedAll(segments).content()
+        embeddingStore.removeAll()
+        embeddingStore.addAll(embeddings, segments)
+
+        return segments.size
     }
 }
