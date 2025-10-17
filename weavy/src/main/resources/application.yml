@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: weavy
+
+server:
+  port: 8084
+
+openai:
+  api-key: "sk-proj-1234"
