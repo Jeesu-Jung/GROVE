@@ -12,21 +12,18 @@ import dev.langchain4j.memory.ChatMemory
 import dev.langchain4j.memory.chat.MessageWindowChatMemory
 import dev.langchain4j.model.chat.ChatModel
 import dev.langchain4j.model.embedding.EmbeddingModel
-import dev.langchain4j.model.embedding.onnx.bgesmallenv15q.BgeSmallEnV15QuantizedEmbeddingModel
-import dev.langchain4j.model.openai.OpenAiChatModel
-import dev.langchain4j.model.openai.OpenAiChatModelName.GPT_5_MINI
 import dev.langchain4j.rag.content.retriever.ContentRetriever
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever
 import dev.langchain4j.service.AiServices
 import dev.langchain4j.store.embedding.EmbeddingStore
 import io.jeesu.weavy.domain.Assistant
 import io.jeesu.weavy.infrastucture.util.Utils.toPath
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 
 @Service
 class ChatBotService(
-    @Value("\${openai.api-key}") private val openaiApiKey: String,
+    private val chatModel: ChatModel,
+    private val embeddingModel: EmbeddingModel,
     private val embeddingStore: EmbeddingStore<TextSegment>
 ) {
 
@@ -35,18 +32,12 @@ class ChatBotService(
     fun answer(query: String?): String = assistant.answer(query)
 
     private fun createAssistant(documentPath: String): Assistant {
-        val chatModel: ChatModel = OpenAiChatModel.builder()
-            .apiKey(openaiApiKey)
-            .modelName(GPT_5_MINI)
-            .build()
-
         val documentParser: DocumentParser = TextDocumentParser()
         val document: Document = loadDocument(toPath(documentPath), documentParser)
 
         val splitter: DocumentSplitter = DocumentSplitters.recursive(300, 0)
         val segments: List<TextSegment> = splitter.split(document)
 
-        val embeddingModel: EmbeddingModel = BgeSmallEnV15QuantizedEmbeddingModel()
         val embeddings: List<Embedding> = embeddingModel.embedAll(segments).content()
 
         embeddingStore.addAll(embeddings, segments)
