@@ -11,18 +11,18 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/weavy")
 class ChatController(
     private val chatBotService: ChatBotService
 ) {
 
-    @PostMapping("/chat")
+    @PostMapping("/v1/chat")
     fun chat(@RequestBody req: ChatRequest): ResponseEntity<ChatResponse> {
         val answer = chatBotService.answer(req.query, req.id)
         return ResponseEntity.ok(ChatResponse(answer))
     }
 
-    @PostMapping("/ingest")
+    @PostMapping("/v1/ingest")
     fun ingest(): ResponseEntity<IngestResponse> {
         val count = chatBotService.ingestDocument()
         return ResponseEntity.ok(IngestResponse(count))
