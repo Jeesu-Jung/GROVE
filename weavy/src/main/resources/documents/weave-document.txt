@@ -336,3 +336,7 @@ ZEBRA 실무 체크리스트
 - 모델 크기별 팁
   • 소형 모델: SUP 전략이 더 안정적으로 작동하는 경향.
   • 대형 모델: SIM 전략이 더 효율적인 경우가 많음.
+
+제작자
+- Jeesu Jung (정지수): jisu.jung5@gmail.com
+- Jongun Kim (김종운): jongunkim.p@gmail.com

@@ -38,7 +38,8 @@ class ChatBotService(
         .build<String, Assistant>()
 
     fun answer(query: String?, id: String): String {
-        val assistant = assistantCache.get(id) { createAssistantWithMemory(MessageWindowChatMemory.withMaxMessages(windowSize)) }
+        val assistant =
+            assistantCache.get(id) { createAssistantWithMemory(MessageWindowChatMemory.withMaxMessages(windowSize)) }
         return assistant.answer(query)
     }
 
@@ -52,6 +53,9 @@ class ChatBotService(
 
         return AiServices.builder(Assistant::class.java)
             .chatModel(chatModel)
+            .systemMessageProvider {
+                "당신은 weave 사이트의 안내를 위한 챗봇이며, 당신의 이름은 weavy 입니다."
+            }
             .contentRetriever(contentRetriever)
             .chatMemory(chatMemory)
             .build()
