@@ -1,189 +1,338 @@
-6.
-WEAVE: Operationalizing Selection, Analysis and
-Binarization
-6.1 Introduction
-We present a no-code user interface that operationalizes the three components of this
-thesis—GROVE (visualized selection), Task-Mixture (task composition and analysis),
-and ZEBRA (behavior-level binarization)—into a single workflow that enables users to
-construct instruction and alignment datasets with near-zero marginal cost (∼$0) and with-
-out writing code. Concretely, the interface provides (i) point-and-click dataset visualiza-
-tion and filtering (OAK Tree, layer-wise JSD variability), (ii) an interactive designer for
-budget-aware task mixtures with immediate feedback on expected trade-offs, and (iii) a
-binarization panel that derives preference pairs from model-behavior profiles (SUP/SIM)
-rather than instance-wise labels. This lowers the barrier for non-programmers and domain
-experts (e.g., education, law, healthcare) to curate, diagnose, and iteratively refine datasets
-tailored to their own tasks, while preserving the reproducibility and traceability required
-for research and production.
-Unlike prior data interfaces that target web-scale pretraining curation, our UI is purpose-
-built for instruction and alignment tuning. It exposes interpretable, human-controllable
-101
-strata (verb-anchored OAK groups) alongside model-centric signals (variability from layer-
-wise divergence), turning abstract analysis into actionable controls. Each operation pro-
-duces a versioned artifact (subset indices, mixture recipes, and binarized pairs) that can
-be exported for SFT/DPO pipelines and revisited later, enabling no-code, cost-efficient,
-and human-in-the-loop dataset engineering consistent with the goals of this dissertation.
-WEAVE thus functions as an accessible workbench: it makes the “analyze →select/compose
-→binarize” loop executable by any practitioner, not just engineers, while adhering to the
-empirical principles established in Chapters 3– 5.
-6.2 Related Works
-6.2.1 LLM Training Data Management Tools
-Several pipelines have been proposed for managing data used in large-scale language model
-training. These systems primarily focus on data curation, cleaning, and augmentation for
-the pretraining stage. Because LLM pretraining typically requires over 3 trillion tokens,
-it is infeasible for engineers to manually inspect and filter the data. Recent frameworks
-aim to standardize the preprocessing steps into modular pipelines compatible with dif-
-ferent model architectures and training objectives, thereby ensuring reproducibility and
-scalability.
-6.2.2 UI/CLI Tools for Data Filtering & Editing
-Post-collection curation for LLM datasets is supported by mature tools that focus on fil-
-tering, editing, and augmentation. For filtering & de-duplication, Mou’s text-dedup
-offers a unified CLI for exact/near-duplicate removal with native datasets support [49],
-and Lee et al. show that deduplicating large corpora improves generalization and reduces
-memorization at scale [36]. Editing pipelines increasingly include policy/PII redaction;
-102
-Microsoft’s Presidio provides configurable detection and anonymization components suit-
-able for pre-SFT scrubbing [47]. For augmentation, Morris et al.’s TextAttack frame-
-work supplies lexical/syntactic/semantic transforms and composable recipes [48], Ma’s nl-
-paug implements lightweight augmentation operators for text [44], and Ribeiro et al.’s
-NL-Augmenter aggregates task-aware transformations and filters for robustness analysis
-[64]. Together, these tools enable reproducible, UI/CLI-driven refinement prior to instruc-
-tion tuning and complement our GROVE/Task-Mixture/ZEBRA workflow.
-6.3 System Overview and Design Goals
-Large language models require efficient and interpretable data workflows. The WEAVE
-System provides an integrated environment for conducting the analyses introduced in
-Chapters 3– 5, namely GROVE (visualized data selection), Task-Mixture (task composi-
-tion), and ZEBRA (preference binarization). Its goals are threefold: (1) unify data anal-
-ysis and selection across modules; (2) enable visual, human-in-the-loop exploration; and
-(3) ensure experiment traceability and reproducibility.
-6.3.1 Design Objectives
-• Unified Access: Connect all analytical modules under a single interface.
-• Cost Efficiency: Because all of our modules are designed for cost-efficient data
-analysis and optimization, we focused on maximizing their effectiveness under tight
-compute and budget constraints.
-• Faster Visual Feedback: Provide dashboards for OAK Tree structures, variabil-
-ity distributions, and mixture outcomes, delivering results as quickly as possible by
-leveraging caching and related optimizations.
-Figure 6.1: Overall architecture of the WEAVE System, integrating GROVE, Task-
-Mixture, and ZEBRA modules.
-• Reproducibility: Automatically log experiment configurations and export datasets
-with metadata.
-6.3.2 System Architecture Overview
-Figure 6.1 illustrates the overall workflow: raw instruction data →GROVE (grouping and
-variability estimation) →Task-Mixture (composition optimization) →ZEBRA (behavior-
-level binarization) →export for SFT or alignment training.
-The overall system implementation and the interaction between the front-end and back-
-end layers are illustrated in Figure 6.2.
-Figure 6.2: Overall architecture of the WEAVE system, integrating the GROVE, Task-
-Mixture, and ZEBRA modules. The diagram illustrates the interaction between the front-
-end and back-end layers. In ZEBRA, Step 2 performs model pairing, and Steps 3–4 carry
-out the response generation process.
-6.4 System Architecture
-6.4.1 Frontend Layer
-Implemented using React, the frontend organizes the system into three primary panels:
-(1) the Dataset Visualization and Selection Module, which displays the OAK Tree
-structure and layer-wise variability scores for GROVE; (2) the Optimized Task-Mixture
-Designer, which supports interactive task composition and performance estimation; and
-(3) the ZEBRA Binarizer, which enables zero-annotation preference generation through
-model-behavior profiling.
-The user interface flow and functionality of each panel are illustrated in Figures 6.3, 6.4,
-105
-and 6.5, respectively. These figures demonstrate how users can visually analyze datasets,
-configure mixtures, and perform alignment binarization through an intuitive, no-code work-
-flow.
-During implementation, we leveraged modern development assistants such as Cursor1
-and Bolt.new2 to accelerate interface prototyping and ensure seamless integration with
-the backend. Their assistance allowed for rapid iteration on design components and real-
-time debugging, making the overall development cycle highly efficient.
-6.4.2 Backend Layer
-The backend was implemented using Spring Boot and FastAPI, integrating the ex-
-perimental findings from Chapters 3–5 to enable efficient data selection and binarization.
-While the overall server framework was developed primarily in Kotlin, computational
-components such as the JSD (Jensen–Shannon Divergence) calculation and other numeri-
-cal operations were implemented in Python for better flexibility and integration with ex-
-isting machine learning libraries.
-To minimize manual configuration, the backend was designed to accept user-provided
-API keys (e.g., from OpenAI or OpenRouter) at runtime. This allows all external model
-calls to be handled securely and dynamically without requiring code-level edits, making
-the system accessible for both research and lightweight production use.
-The backend handles the following core functionalities:
-• Computation of variability scores and caching of verb-group metrics.
-• Querying, logging, and management of task mixtures along with associated meta-
-data.
- Generation, validation, and storage of ZEBRA preference pairs for alignment datasets.
-This modular design ensures that computationally intensive processes (e.g., variabil-
-ity analysis, embedding retrieval, and preference generation) remain efficient and scalable,
-while data exchange between components (GROVE, Task-Mixture, and ZEBRA) occurs
-seamlessly through standardized REST APIs.
-6.4.3 Data Schema
-In this study, we constructed databases based on the experimental settings reported in
-Chapters 4, 3, and 5, in order to support embedding-based retrieval using seed sentences
-from the Task-Mixture module. Specifically, we built a vector database for the Task-
-Mixture Designer and designed caching databases for GROVE and ZEBRA to opti-
-mize data access efficiency.
-For the Task-Mixture Designer, we employed Milvus DB (version 2.6.2), a high-performance
-vector database. Each record consisted of the following fields: id (primary key, auto-
-generated), vector (a 1536-dimensional float vector), sentence (a string with a maximum
-length of 2048), and type (a string with a maximum length of 512). This schema supports
-rapid semantic search and embedding retrieval for task mixture exploration.
-For the GROVE and ZEBRA modules, we used a Redis caching database to reduce
-latency. When an identical input had been processed before, cached responses were served
-using a time-to-live (TTL) mechanism to ensure faster access and automatic cache expira-
-tion. This hybrid design—combining vector retrieval for semantic similarity and lightweight
-caching for repeated queries—enabled real-time responsiveness and cost-efficient interac-
-tion across all components of the WEAVE system.
-107
-6.4.4 Implementation Details
-The system was implemented with a React-based frontend and a hybrid backend architec-
-ture combining Kotlin 1.9.25 (JDK 21) with Spring Boot 3.5.6, and Python 3.11 for
-computational components. Model-level computations and numerical operations leverage
-PyTorch 2.2.1 and Transformers 4.28.1 for efficient embedding and variability analysis.
-All modules are containerized for deployment using Docker, and the system is fully
-operable on CPU-only environments—no GPU nodes are required.
-6.5 User Interface and Workflows
-6.5.1 Dataset Visualization (OAK Tree and variabilty score) and Se-
-lection Module
-Tree visualization of groups G, verbs V, and documents D. Users can expand nodes, view
-representative instructions, and observe each group’s mean variability ¯ sG.
-Interactive histograms and violin plots visualize variability across groups. Sliders allow
-selecting high-variability (HV), low-variability (LV), or mixed (MIX) subsets.
-6.5.2 Optimized Task-Mixture Designer
-Supports composition up to 5-task mixtures. Provides projected performance–cost plots
-and mixture proportion controls. All results link to the statistical analyses described in
-Chapter 4.
-6.5.3 Automatic Data Binarizer
-This module enables behavior-level preference generation. Users can upload benchmark
-profiles, select one of the SUP, SIM, or SUP+SIM modes (or a user-customized model
-108
-option), and generate preference pairs for alignment tuning pipelines. To implement this,
-we utilized the OpenRouter API.
-Unfortunately, most of the 17 models originally analyzed in UltraFeedback have since
-been updated to newer versions or discontinued. As a result, we decided to include only
-the GPT, Gemini, and LLaMA families of models. Our analysis indicates that models with
-similar architectures and scales tend to exhibit comparable behavior patterns. Therefore,
-this substitution allows ZEBRA to function properly without degradation.
-The final set of supported models is as follows: GPT-4, GPT-3.5-turbo, Gemini-2.5-
-flash, Llama-3.1-8b-instruct, Llama-4-maverick, and Llama-3.3-70b-instruct.
-6.6 Case Studies
-6.6.1 Case 1: Hybrid Selection via GROVE
-We demonstrate the selection of the top 50% of HV groups and measure benchmark gains
-compared to random sampling. Figure 6.3 illustrates an example flow of the user interface.
-6.6.2 Case 2: Task-Mixture Optimization
-This case provides the optimal domain composition for the model to be trained and the
-target task. Figure 6.4 illustrates an example flow of the user interface.
-6.6.3 Case 3: Preference Binarization with ZEBRA
-We generate SIM preference pairs from benchmark-derived behaviors. Figure 6.5 shows
-the process of simply generating a fully binarized dataset through zero-cost annotation.
-6.7 Discussion and Future Extensions
-Potential future extensions include:
-109
-• Integrating active-learning feedback from alignment loops.
-• Extending OAK Tree grouping to multilingual instructions.
-• Automating mixture parameter suggestions using Bayesian optimization.
-• Deploying WEAVE as a collaborative web service for research teams.
-• Adding an agent feature that provides goal-oriented guidance based on the user’s
-intent.
-6.8 Summary
-The WEAVE System consolidates the analytical methods introduced in Chap-
-ters 3– 5 into a reproducible, visual, and interactive environment. By turning
-abstract metrics into actionable controls, it enables transparent, efficient, and
-user-guided construction of instruction-tuning data.
+Main Introduction - Large language models (LLMs) derive their capabilities from scale—of both model parameters and data—but naively enlarging instruction datasets often yields diminishing returns while increasing training cost. 
+Recent practice therefore emphasizes \emph{data engineering}: selecting what to train on, how to combine tasks, and how to construct preference data for alignment without expensive human labels. 
+This dissertation addresses these three levers in a unified, empirically grounded manner.
+A central obstacle is that instruction corpora synthesized by Self-Instruct–style pipelines aggregate many task types with little structure or quality control. 
+As a result, (i) sampling can over- or under-represent specific action types (e.g., \textit{summarize}, \textit{translate}, \textit{refactor}); 
+(ii) model-centric difficulty signals such as loss, uncertainty, or layer divergence are rarely reconciled with interpretable, human-controllable strata; and 
+(iii) alignment datasets still rely on instance-wise judgments that are costly and brittle across model families. 
+These gaps hinder systematic improvement of performance-to-cost trade-offs.
+We propose WEAVE, a workbench and methodology for Well-structured Empirical workflows in Analysis, Visualized selection, and Efficient binarization of instructional data. 
+
+Main Contribution - Concretely, WEAVE integrates three contributions:
+GROVE (Grouped Refinement of Organized Variability Estimation): a hybrid data-selection framework that couples a data-centric, verb-anchored taxonomy (OAK Tree) with a model-centric difficulty signal (variability, computed from layer-wise representation divergence).  GROVE enables group-aware, difficulty-aware subsampling that maintains task coverage while prioritizing informative examples.
+Task-Mixture Analysis: an empirical study of how task proportions affect single- and multi-task quality under fixed budgets. Using embedding-seeded retrieval and statistical analysis of mixture experiments, we characterize synergy and interference patterns and distill scale-aware recipes for practitioners.
+ZEBRA (ZEro-annotation Behavior-based Response Alignment): a zero-annotation preference-binarization method that replaces instance-wise labels with \textbf{model-behavior} signals derived from public benchmarks, reducing labeling cost while preserving alignment quality.
+
+Across multiple 3B–8B models and standard benchmarks, subsets selected with GROVE at 50% of the data match or exceed full-data training—reaching improvements up to 4.40%—demonstrating that principled selection can outperform naïve scaling while lowering compute. 
+The task-mixture results provide actionable rules (e.g., when to prefer two-task vs. three-task mixtures for a given budget), and ZEBRA shows that behavior-level binarization can substitute for expensive preference annotation without degrading outcomes. 
+
+Main Thesis Statement: Structuring instructional data around actionable groups, selecting within groups using model-centric variability, optimizing task mixtures by budget, and binarizing preferences from model behavior together yield better accuracy-per-token and accuracy-per-GPU-hour than training on unstructured, fully scaled datasets.
+
+Main Contributions: 1) A hybrid selection framework (GROVE) combining verb-centric grouping with variability-based ranking, including ablations contrasting group-only, variability-only, and hybrid sampling. 2) A systematic analysis of task-mixture effects with statistical modeling and practical, scale-aware guidelines. 3) A zero-annotation preference-binarization method (ZEBRA) leveraging benchmark-induced behavior profiles instead of instance-wise labels. 4) An integrated workbench (WEAVE) that makes these analyses actionable through visual exploration and end-to-end workflows.
+
+Backgrounds & Related Works
+Motivation: Why Instruction Data Engineering?
+Large language models (LLMs) typically improve performance through three stages: (i) large-scale unsupervised pretraining, (ii) instruction tuning, and (iii) alignment tuning. Pretraining equips models with broad linguistic knowledge; instruction tuning adapts them to diverse task formats; alignment tuning incorporates human or AI preferences and safety constraints. 
+However, instruction data produced via automated pipelines (e.g., Self-Instruct) often suffers from loose task structure, skewed sampling, and gaps in task coverage, which inflate cost without guaranteed gains. 
+Accordingly, what to select, how much to include, and how to mix—and, for alignment, how to binarize preferences—have become central bottlenecks. Our system, WEAVE, targets these bottlenecks by combining interpretable grouping with model-side difficulty signals, data-mixture design, and label-free preference binarization.
+
+LLM Training Process: 1) Pretraining: Autoregressive language modeling over trillion-token corpora remains the dominant approach for acquiring general linguistic and world knowledge. 2) Instruction tuning: Supervised fine-tuning (SFT) on diverse instruction--response pairs encourages task generalization across domains and formats. 3) Alignment: Preference-based objectives such as RLHF/RLAIF and direct preference optimization families (e.g., DPO, ORPO) align outputs to human or AI raters.
+
+Instruction Datasets: Self-generative pipelines (e.g., Self-Instruct) aggregate tasks like summarization, classification, translation, and creative writing to inject many tasks into one model, yet make it difficult to control weaknesses and maintain balanced coverage. This motivates structured \emph{data engineering} for selection, curation, and reformatting.
+
+We position WEAVE as a unified system that: (i) fuses interpretable grouping (OAK) with model-side difficulty (layer-wise JSD) for hybrid selection (GROVE); (ii) provides budget-aware task-mixture design; and (iii) enables behavior-level, label-free preference binarization (ZEBRA). The objective is to improve accuracy-per-token and accuracy-per-GPU-hour, maximizing performance under training-cost constraints.
+
+GROVE Abstract - Data selection is essential for improving the efficiency of large-scale data training. In this work, we propose an automatic hybrid data selection method for self-instruction datasets, which are designed to handle diverse tasks simultaneously. To achieve this, we apply both a data-centric approach (OAK Tree) and a model-centric approach (Variability Score) for selecting data.
+OAK Tree is automatically constructed based on instruction-level contexts, while the Variability Score measures data difficulty by computing the Jensen–Shannon divergence between layers inside the model, enabling the identification and utilization of challenging samples.
+
+GROVE Introduction - Recently, the use of large-scale data has enabled large language models (LLMs) to handle various tasks and achieve remarkable performance. One effective approach to augmenting such datasets is automatic data generation, which reduces the reliance on extensive manual annotation. A notable example is the Self-Instruct dataset, which enhances instruction-following capabilities by automatically generating diverse task examples through model-based techniques. Since the data collects various tasks and domains automatically into a single dataset  without human oversight, the qualitative evaluation of the data becomes even more crucial.
+However, significantly large training costs and challenges in managing data quality emerged. As instruction datasets are often created by automatically combining a wide variety of tasks into a single collection, the resulting data can vary greatly in quality and relevance. Therefore, conducting a thorough qualitative evaluation of these datasets becomes essential to ensure that the data used for training actually contributes to model improvement rather than noise. In this context, data selection has become an especially important strategy for optimizing both cost and performance. While this is particularly important for larger models, it remains equally crucial for LLMs.
+Research on improving data quality is actively being conducted. Data-centric approaches that use human-controllable features such as sentence length and structure to select train-necessity data have been introduced. Additionally, model-centric approaches  that utilize human or LLM judgments and refer to the model prediction loss values for effective selection of large-scale data, have also been applied.
+However, methods developed for existing Self-Instruct datasets are generally biased towards utilizing either a model-centric or data-centric approach. Utilizing one of the selection methods cause the imbalanced problem where the specific part are sampled.
+To address this limitation, we propose a novel strategy that integrates the strengths of both approaches for improved hybrid data selection, Grouped Refinement of Organized Variability Estimation (GROVE) framework.
+We propose the Organized-Action-Knowledge(OAK) Tree as a data-centric method and variability scoring as a model-centric data selection method. The OAK Tree represents action information from instructional data by focusing on grammatical elements--verbs--and organizes this information hierarchically to enable balanced data selection. In contrast, variability scoring measures the divergence between the model's first and last layer hidden states, offering a quantitative evaluation of the model's understanding of each data point.
+The GROVE framework integrates these methods, guiding the model to learn based on the required level of understanding for actions specified by the OAK Tree. By utilizing the OAK Tree's hierarchical action structure, users can define the scope of learning tasks, while variability scoring enables numerical filtering aligned with the model's comprehension.
+
+GROVE Method - We propose an efficient training data selection for a LLM-genearted instruction dataset, which consists of: 1) Extracting instructions and classifying action groups for automatic OAK Tree construction, 2) Calculating variability for each action group, and 3) Selecting the optimal data portion for Self-Instruct dataset. We propose a methodology for efficient training data selection for Self-Instruct dataset. Our approach is structured into three steps. Figure \ref{fig:overall_architecture} shows the process of our approach.
+
+GROVE Method - Data-centric Approach: OAK Tree - For automatic OAK Tree construction, we extract key components from the Self-Instruct dataset and organize them into a structured, interpretable hierarchy. The OAK Tree is designed to represent the contextual relationships within instruction data, grounded in the action knowledge embedded in each sample. By defining and assembling these components, the OAK Tree systematically organizes the instruction dataset, enabling a more transparent and context-aware understanding of the data.
+
+GROVE Method - Data-centric Approach: LLM-generated Instruction Data - In LLM-generated instruction data, the boundary between instruction-giving and information-providing parts is often ambiguous. The action-related segments, though typically short, play a crucial role in defining the expected form or structure of the output. Therefore, we use these segments as the foundation for constructing the OAK Tree.
+To formalize this process, we define the full input context as $D$ (Document), the action-related part of $D$ as $B$ (Block), the first verb in $B$ as $V$ (Verb), and $G$ (Group) as the set of verbs semantically similar to $V$. The LLM is employed to automatically extract instruction blocks and classify action groups for OAK Tree construction.
+The Verb represents the core action within directives, typically expressed in imperative or hortative forms, capturing the grammatical essence of instruction. We assume that identifying verbs enables us to infer the output form, as prior studies have shown that a higher number of verbs and objects leads to more balanced sampling within instruction datasets.
+
+GROVE Method - Data-centric Approach: Automatic OAK Tree Construction - The OAK Tree automatically organizes the entire instruction dataset into a hierarchical three-level tree structure, excluding the root level:
+Level 0: Root Empty node
+Level 1: $G$ The top-level node represents the group of actions.
+Level 2: $V$ The nodes under the $G$, each representing a specific action or activity.
+Level 3: $D$ The nodes are under each $V$, representing specific data or detailed content related to the actions.
+The process of automatic construction is as follows:
+1) The LLM extracts sentences corresponding to the $B$ from $D$,
+2) English part-of-speech tagger collects the grammatical units corresponding to the $V$ from $B$,
+3) The LLM classifies the instruction set into $G$.
+
+GROVE Method - Model-centric Approach: Variability Score Calculation - We define the data variability using the divergence between the embedding vector of model first layer $L_F$ and last layer $L_L$. Using the first and last layers maximizes diversity \cite{DoLA}. \textcolor{red}{The more challenging the data is for the model, the more the embedding vector undergoes numerous modifications as it passes through the model layers. Consequently, we expect greater variations in embedding vectors for difficult data when comparing $L_F$ and $L_L$. Jensen-Shannon divergence $JSD$ is used to measure the variability.} Given an input text, we apply the $JSD$ to the layer embedding probabilities. $JSD$ is the symmetric, smoothing version of Kullback–Leibler divergence $KLD$ 
+
+GROVE Method - Hybrid Approach: Group-wise Data Selection - After obtaining OAK Tree and variability scores, we constructed a set of the top-$p$% (HV) and a set of the bottom-$p$% (LV) based on variability scores on each $G$. we then counstructed MIX as a balanced combination of equal proportions of HV and LV. Our approach focuses on vulnerable data within each group, aiming to ensure data diversity without bias towards specific groups. We use $p=\{10, 25, 50\}$, the maximum range where the data selected by LV and HV do not overlap. Our approach aims for balanced training across all groups, focusing on general knowledge and key vulnerable data. Instead of selecting from the total dataset, we built a subset subsets within each group with high (G-HV), low (G-LV) variability scores and their blend (G-MIX).
+
+GROVE Result: OAK Tree Construction Quality - The OAK Tree is a hierarchical structure that organizes actions based on semantic similarity. In our construction process, we evaluated 3 models to verify the feasibility of OAK Tree construction, comparing closed models like GPT-4o with open models such as Deepseek-V3 and Llama-3.1-7B-Instruct. The analysis processed 51,759 data points, grouping them into approximately 1,200 to 6,388 $V$ instances and clustering them into 200 to 1,331 $G$ clusters. An initial API cost was required for construction, after which the OAK Tree could be used without additional expenses. To verify the effectiveness of automated construction, we compared $G$ clusters generated from embedding-based clustering against those produced through prompt engineering. Using OpenAI's `text-embedding-ada-002' model, GPT-4o achieved an adjusted rand index (ARI) of 0.8075 and normalized mutual information (NMI) of 0.9415 across all groups, indicating effective clustering of semantically similar actions. Both metrics range from 0 to 1 and measure cluster coherence, demonstrating our OAK Tree's strong cohesion. We selected the GPT-4o constructed OAK Tree for our final implementation due to its superior NMI score, which demonstrates robust information preservation even with numerous $G$ clusters. To visually assess whether the OAK Tree effectively clusters similar actions, we performed embedding clustering. We attempted to generate three different OAK Trees and visualized the largest top-7 $G$
+
+GROVE Result: Cost for Construction of OAK Tree - The cost to extract an instruction block, denoted as \( C_{block} \), is based on 51,760 data points: C_{block} = \frac{2,649,000 \times 1.25}{1,000,000} = 33.11,
+The cost to make a group, denoted as \( C_{group} \), is based on 1,029 values, grouped in sets of 100. Afterward, the "Miscellaneous" group is repeated 5 times for regrouping:
+C_{group} = \frac{(11 + 5 \times 2) \times 1.25 \times 38,000}{1,000,000} = 1.00,
+total cost is \$34.11.
+
+GROVE Result: Performance on Benchmark Datasets - To verify the effectiveness of data selection on model training process, we evaluated the performance on a benchmark dataset.
+We measured the average accuracy of the Qwen-2.5\cite{qwen2.5} and Llama-3.1 \cite{llama3} models on benchmark datasets. The random 50% selection outperforming the total data is due to a high amount of erroneous data caused by automated generation. Notably, our methods shows an accuracy increase of approximately up to 4.40% relative compared to the 100% data.
+In terms of overall performance, the GROVE framework achieves results that are nearly equivalent to those obtained using the entire dataset. Notably, when utilizing G-MIX, performance consistently exceeds 100%, which is a significant finding. Additionally, when employing G-HV, the performance gain exceeds 0.1 points compared to using a random 50% subset of the data across both models tested in the experiment.
+This advantage is particularly evident in benchmarks requiring fundamental STEM knowledge, such as MMLU-STEM and AQUA-RAT. These results highlight the importance of training on curated and consistent data rather than simply increasing the volume of data for instruction tuning. 
+
+GROVE Result: Impact of Low and High Variability Score Sampling - The larger the training data size, the higher the average performance, and the Mixed technique that evenly uses both LV and HV proves more advantageous. Particularly in STEM ability, it scores 0.05 higher than LV and HV sampling methods, while also achieving the highest average performance overall. This performance is comparable to training with the entire dataset. Such a tendency was more pronounced in medium-sized models of around $\sim$8B parameters than in smaller models within 3B. However, this tendency varies depending on the size of the model and the dataset. For larger models, G-MIX consistently performs the best. When using less than 50\% of the data, utilizing HV generally helps model training more than using the mixed approach. When training with only 25\% of the data, it achieved a STEM ability score 0.003 higher than training with the entire dataset. Notably, this is 0.02 higher than when using the mixed approach. For Linguistics, it also shows a score 0.21 higher than the mixed approach. In terms of Reasoning, using LV achieves the highest performance, showing a score approximately 0.08 higher than the mixed approach. This trend suggests that when using data for a small number of intensive target tasks, employing HV in data sampling can preserve linguistic ability and improve STEM ability better than mixed or LV approaches, while using LV can enhance performance in reasoning tasks.
+
+GROVE Result: OAK Tree $G$ Top-$k$ sampling - The OAK Tree, constructed from the entire dataset, is normalized based on \textit{Action}-related attributes such as Topic and Task. Filtering a total of $k$ $G$ by frequency shows that using just 3 $G$ groups can approximate the performance of training on the entire dataset. Training on these selected groups yields an average benchmark accuracy of 0.601, demonstrating that a subset of groups can still achieve generalizable performance.  
+However, increasing the number of groups introduces more diverse data but also potential noise. When training with more than 10 $G$, HV-based sampling outperforms frequency-based selection at the same data scale. 
+
+Task-Mixture Abstract - The performance of large language models heavily depends on instruction tuning, especially on task types and mixture ratios. However, previous research has primarily focused on mixing tasks at fixed ratios, lacking a systematic and quantitative analysis of task-wise interactions across diverse tasks. Moreover, it has relied heavily on human labeling. To address these limitations, this study conducts empirical experiments on \textit{unlabeled} instruction corpora, varying both the number and proportion of task combinations to identify effective mixtures. To minimize manual labeling, we automatically extract five representative tasks—\mix{programming}, \mix{math problem solving}, \mix{history question answering}, \mix{grammar correction}, and \mix{creative writing}—using only a few seed instructions. Across 51 mixtures, we find that 1–2 task mixtures work best with small datasets, while synergistic 3-task mixtures excel with larger data. Task interactions reveal both synergy (e.g., \mix{programming} + \mix{math}) and interference (e.g., \mix{programming} + \mix{creative writing}). These results provide practical guidelines for mixture design tailored to model scale and data size.
+
+Task-Mixture Introduction - Large Language Models (LLMs) achieve alignment with human intent through the process of instruction tuning. Instruction tuning enables the model to understand and respond appropriately to a wide range of natural language instructions via supervised learning on high-quality instruction–response pairs. Recent studies have shown that the performance of instruction-tuned models can significantly vary depending on the task and format diversity of the training data. Among these factors, \textit{the types of tasks and their mixture proportions} play a crucial role in determining final model performance, sometimes enabling only 1,000 curated examples to reach the performance of over 52,000 unlabeled ones, or achieving up to a 5.7× speedup in training. 
+Recent work has increasingly investigated how task mixtures affect instruction tuning, demonstrating that adjusting task proportions can improve overall model quality. However, the approach focuses primarily on mixing tasks at fixed ratios and lack a systematic and quantitative analysis of task-wise interactions across diverse tasks, leaving important interaction patterns underexplored. Moreover, prior work has relied on human-labeled datasets such as FLAN and P3. These datasets are limited in scope and do not adequately capture scenarios involving diverse and heterogeneous instructions.
+In practice, widely-used instruction datasets such as Self-Instruct, OpenAssistant, and Alpaca are composed of model- or human-generated instructions without explicit task labels. Manually annotating task labels in such datasets is costly and time-consuming, and thus impractical at scale. Moreover, understanding inter-task interaction patterns in large-scale corpora remains challenging. This motivates the need for automatic analysis methods that infer tasks and guide mixture strategies from unlabeled instruction data.
+To address this gap, we propose a minimally-supervised framework for designing effective task mixtures from unlabeled instruction corpora, along with an analytical methodology for evaluating their impact. While inspired by recent nearest-neighbor sampling approaches, this work represents the first attempt to apply such methods to the study of task mixtures. By systematically varying the number and proportion of tasks, our goal is to empirically characterize task-wise interactions and discover effective combinations. Results show that 2-task mixtures are effective for small datasets and single-task gains, while 3-task mixtures improve multi-task performance with larger data. We also identify interaction patterns, including synergy (\mix{programming} + \mix{math}) and interference (\mix{programming} + \mix{creative writing}). These insights provide practical guidelines for instruction tuning.
+
+Task-Mixture Process - Concretely, our approach consists of the following three stages: 1) Task Discovery and Data Allocation: Define a few (<5) seed instructions for 5 representative tasks (\mix{programming}, \mix{math problem solving}, \mix{history QA}, \mix{grammar correction}, \mix{creative writing}) and retrieve relevant data via embedding-based search. 2) Systematic Mixture Design and Analysis: Construct all 1–5 task combinations with four training sizes (250, 500, 750, 1,000), yielding 51 mixtures for empirical analysis of task interactions. 3) Large-scale Experimentation and Interaction Analysis: Tune all mixtures across three model families~\cite{llama3, qwen2.5, mistral}, quantifying synergy and interference, and identify effective mixtures via Pareto frontier analysis.
+
+Task-Mixture Contribution - Our main contributions are as follows: 1) The first attempt to apply automatic task identification from unlabeled instructions, via seed-based retrieval, to task mixture research. 2) A large-scale empirical analysis quantifying synergy and interference across task mixtures. 3) The analysis shows that synergistic mixtures outperform uniform task distributions on various benchmark tasks. 4) Practical guidelines for task mixture design, tailored to model scale and training data size.
+
+Task-Mixture Method - Task Mixture Construction: We introduce a four-stage framework for constructing and evaluating task mixtures from unlabeled instruction data: task definition, task discovery, mixture construction, and analysis design.
+Definition of Task: Instruction datasets include diverse prompts in content, style, and format. We define a task as a group of instructions with a shared intent and formats. While prior work relied on pre-labeled datasets with fixed task definitions and mixing ratios, modern instruction corpora—often user-generated or automatically collected—lack explicit task boundaries. This motivates the need for task discovery methods that operate without labeled metadata.
+
+Task-Mixture Method - Selection of Representative Tasks: To facilitate a systematic analysis of task interactions, we select five representative tasks grounded in common evaluation benchmarks: \mix{Programming} (\mix{P}): Tasks involving code generation and algorithm implementation. \mix{Math problem solving} (\mix{M}): Tasks that require logical reasoning and numerical computation. \mix{History QA} (\mix{H}): Tasks requiring factual knowledge and information retrieval. \mix{Grammar correction} (\mix{G}): Tasks evaluating grammatical accuracy and language editing capabilities. \mix{Creative writing} (\mix{C}): Tasks that assess the model’s ability to generate creative content such as poems and stories. These tasks collectively span essential LLM capabilities, including reasoning (\mix{P}, \mix{M}), linguistic generation (\mix{C}, \mix{G}), and factual knowledge (\mix{H}).
+
+Task-Mixture Method - Embedding-based Task-wise Sampling: Modern instruction datasets are often derived from natural user interactions rather than structured task-specific templates. To extract subsets corresponding to each task, we employ an embedding-based sampling method. 
+Seed Instruction Collection.: The seed instructions serve as core queries for embedding-based sampling of task-specific subsets. For each of the five tasks, we manually collect three prototypical instruction patterns, yielding 15 seed instructions in total. We embed seed instructions and the full corpus in a shared space and retrieve the top 1,100 candidates per task using cosine similarity, following recent nearest-neighbor sampling approaches. We employ the \texttt{text-embedding-3-small} model~\cite{textembedding} for semantic similarity, with the sampling process as follows: 1) Embed the seed instructions and the full Alpaca dataset using an LLM-based embedder. 2) Compute the centroid (mean embedding) for each task based on its seed instructions. 3) Retrieve the top 220 nearest instructions per centroid (1,100 total per task) using cosine similarity.
+From each sampled set, we randomly select 1,000 examples for training and 100 for testing. The data sizes are aligned with the minimum data thresholds proposed in prior work.
+
+Task-Mixture Method - Construction of Task Mixtures:  We construct all combinations of 1 to 5 tasks, resulting in 31 unique sets: 5 single-task, 10 two-task, 10 three-task, 5 four-task, and 1 five-task mixture. These are used to analyze baseline performance, pairwise interactions, and broader composition effects. For each task combination, we design both uniform and skewed distributions (e.g., 2:1:1) to yield a total of \textit{51 distinct task mixtures}.
+
+Task-Mixture Method - Score Aggregation across LLMs: Because LLMs produce different score distributions due to their inherent biases, we aggregate scores from three structurally diverse LLM judges into a single value. We denote by $y_d(w)$ the raw score of mixture $w$ on task $d$.  We apply inverse-variance weighting so that judges whose evaluations are more consistent across instances receive higher weight. This yields an aggregated score $y_{d^\star}(w)$ for each mixture.
+
+Task-Mixture Method - Statistical Analysis for Target Task Improvement: We then cast mixture selection as a best-arm identification problem. 
+Using bootstrap resampling over instances ($B=10,000$), we compute for each mixture:
+$p_{\text{best}}(w)$: the probability that $w$ is ranked first, $\Delta(w)$: the margin between the winner $\hat w$ and the runner-up.We declare a unique winner $\hat w$ if
+\[
+p_{\text{best}}(\hat w) \ge 0.95 
+\quad \text{and} \quad
+\Pr(\Delta(\hat w) > \tau) \ge 0.95,
+\]
+with margin threshold $\tau=0.03$. Otherwise, we report an $\varepsilon$-optimal set.  
+This procedure provides a \textbf{statistically certified Top-1 mixture} for each target task and training data size.
+
+Task-Mixture Method - Statistical Analysis for Balanced Multi-task Performance: For balanced performance across all tasks, we normalize per-task scores for comparability:
+\[
+\tilde y_d(w) = \frac{y_d(w) - \min_{w'} y_d(w')}{\max_{w'} y_d(w') - \min_{w'} y_d(w')},
+\]
+so that $\tilde y_d(w) \in [0,1]$ represents the normalized performance of mixture $w$ on task $d$.
+We summarize each mixture $w$ by two factors:
+\textbf{Quality ($q$)}: the mean normalized score across tasks,
+    \[
+    q(w) = \frac{1}{D}\sum_{d=1}^D \tilde y_d(w).
+    \]
+\textbf{Stability ($1-d_\infty$)}: the complement of worst domain regret,
+    \[
+    d_\infty(w) = \max_d \bigl(1 - \tilde y_d(w)\bigr).
+    \]
+Thus each mixture is represented as a 2D point $(q(w), 1-d_\infty(w))$. 
+We compute the \textbf{Pareto frontier} in this space to identify mixtures that cannot be improved in both dimensions simultaneously. 
+For reporting, we present the optimal Pareto set. 
+For deployment, we optionally scalarize with
+\[
+Score_\lambda(w) = \lambda \, q(w) + (1-\lambda)\,(1-d_\infty(w)),
+\]
+to select a single balanced mixture. We set $\lambda=0.5$ by default to equally weight performance and diversity, representing a neutral trade-off point.
+
+Task-Mixture Result - Reliability of Task Discovery: Five annotators were asked to judge whether the retrieved instructions were semantically aligned with the target task domain, using a 0–1 scale where higher values indicate stronger relevance. 
+Across all tasks, individual annotators consistently rated the retrieved samples between 0.7 and 1.0, suggesting that embedding search reliably captures task-related semantics. 
+The average agreement per annotator ranges from 0.76 to 0.90, and majority voting yields an overall score of 0.90, further confirming robustness across evaluators. 
+In particular, \mix{programming} and \mix{creative writing} show perfect or near-perfect agreement, while \mix{history QA} and \mix{grammar correction} exhibit slightly lower but still strong alignment. 
+These results validate our use of embedding-based retrieval as a practical and accurate method for constructing task-specific subsets without manual annotation.
+
+Task-Mixture Result - Effect of Training Data Size: 250--500 examples (low-resource): single-task or 2-task mixtures are most effective, while 3+ tasks often underperform. 750--1,000 examples (mid- to high-resource): 3--4 task mixtures become more stable and outperform the uniform 5-task baseline in balanced settings. 
+These results support the strategy of specialization under low-resource and balanced mixtures under larger data sizes. 
+
+Task-Mixture Result - Target Task Optimization: \mix{Programming}: Helps other tasks, showing strong synergy on \mix{M} or \mix{G}, \mix{Math problem solving}: benefits from \mix{P} as auxiliaries. \mix{History QA}: effective alone or in \mix{P} and \mix{M} combinations.  \mix{Grammar correction}: best when isolated or paired with \mix{H}. \mix{Creative writing}: sensitive to interference, often degraded when mixed with \mix{G} or \mix{H}. 
+
+Task-Mixture Result - Balanced Multi-task Performance: Model-wise Differences: 
+1) Llama: sensitive to data sizes size, balanced HV decreases with larger data. 
+2) Mistral:  balanced HV peaks at medium data sizes (500 examples). 
+3) Qwen:  consistently robust across data sizes, achieving high HV even with 250 examples. 
+
+ 
+Task-Mixture Result - Balanced Multi-task Performance: Take-away: 
+1) Convergence point: mixture effects stabilize near 750 examples. 
+2) Unique winner stability: decisions are threshold-insensitive; $\Pr[\Delta > \tau]$ is the decisive factor. 
+3) $\epsilon$-optimal reporting: when winners are uncertain, reporting top-3 candidate mixtures provides a fairer view. 
+4) Balanced performance: HV trajectories show model-specific peaks---Mistral at 500, Qwen at 250/750, Llama at 250. 
+5) Domain/model specificity: \mix{P}--\mix{M} synergize, \mix{P}--\mix{C} interfere. Qwen is robust under low-resource, Llama is size-sensitive, Mistral peaks at medium data sizes.
+
+Task-Mixture Guidelines - Data size-aware strategy: With fewer than 500 examples, single-task or carefully chosen 2-task mixtures are most effective. Beyond 750 examples, balanced mixtures of 3--4 tasks become advantageous. Practitioners should specialize under low-resource settings and balance under larger scales. 
+
+Task-Mixture Guidelines - Domain interactions: mix{Programming} and Math consistently exhibit synergy and should be combined when the target requires reasoning or structured outputs.   In contrast, \mix{Programming} and \mix{Creative writing} often interfere and should be separated unless sufficient data is available to mitigate negative transfer.
+
+Task-Mixture Guidelines - Anchor tasks: History and Grammar frequently serve as stabilizing anchors in balanced winners, particularly at small to mid data sizes. ncluding at least 20--30% of such language-oriented tasks improves generalization across other domains. 
+
+Task-Mixture Guidelines - Model-aware design: Model families differ in their balanced performance peaks: Llama favors smaller data sizes, Mistral peaks at medium data sizes (around 500), while Qwen remains robust across scales. Mixture strategies should be adjusted to model-specific inductive biases. 
+
+Task-Mixture Guidelines - Uncertainty reporting:  When mixtures cannot be statistically distinguished, we recommend reporting an $\epsilon$-optimal set of top candidates rather than a single winner. This reduces selection bias and provides a more reproducible basis for deployment. 
+
+Task-Mixture Result - Performance on External Benchmarks: The best mixture identified in this study also performs well on external benchmarks, humaneval~\cite{humaneval}, GSM8K \cite{gsm8k}, Creative Writing Benchmark v3\cite{EQBench}, CoLA\cite{cola} and MMLU-pro\cite{mmlu_pro} history. Figure~\ref{fig:best_boxplot_all} shows the performance distribution of the Llama, Mistral, and Qwen models with 750 data size on external benchmarks. 
+Although their distributions differ, models selected as the best generally achieve above-average performance. In particular, for average performance, models identified on the Pareto frontier demonstrate superior results across all models. All distributions were computed after applying min–max normalization.
+
+ZEBRA Abstract: Recent efforts in LLM alignment have focused on constructing large-scale preference datasets via human or Artificial Intelligence(AI) annotators. However, such approaches rely on instance-wise supervision, incurring substantial annotation cost and limited interpretability. In this paper, we propose ZEBRA—a model behavior-wise zero-annotation framework that constructs preference data by leveraging model behavior knowledge derived from benchmark performances.
+ZEBRA binarizes response pairs by evaluating the quality and similarity of their origin models, entirely bypassing instance-level annotation. This allows scalable, controllable, and cost-effective alignment data generation. Empirical results show that ZEBRA achieves alignment performance comparable to instance-supervised methods, despite requiring no manual or model-based labeling. 
+
+ZEBRA Introduction: Aligning large language models (LLMs) with human preferences is an essential step toward making them both useful and safe. A common way to achieve this is through instance-wise labeling, where pairs of model responses are compared one by one to see which is better. Well-known methods like Reinforcement Learning from Human Feedback (RLHF) and Artificial Intelligence(AI)-based labeling(RLAIF) often use this strategy.
+However, instance-wise labeling faces two major challenges. First, it is very costly, whether it involves human annotators or additional computational resources for LLM-based labeling. Second, it lacks a global view of the model’s behavior. Since each response pair is judged in isolation, it is difficult to consider broader factors. For example, whether fluency should outweigh factual accuracy. Or whether a model’s outputs are consistently aligned with certain policies This can lead to labeling noise, mistakes, and limited interpretability.
+To address these limitations, we propose a new preference binarization approach called ZEro-annotation Behavior-based Response Alignment (ZEBRA). The main idea is: (1) extract each model’s behavioral patterns from its past performance trajectories, (2) measure and compare these behaviors in terms of model strength or similarity, and (3) assign preferences at the model level rather than for each individual response pair.
+We implement this idea through three key components. First, we define Model Behavior Knowledge (MBK) for LLMs. Second, we propose a way to quantify and collect MBK from objective data sources such as benchmark performance. Third, we introduce three strategies—based on superiority, similarity, and a hybrid—to construct a binarization dataset in a zero-annotation, cost-free manner.
+A major advantage of our approach is that it creates response pairs based on model superiority without any additional human or LLM labeling. By classifying models with higher benchmark scores as “positive” and those with lower scores as “negative,” we can systematically label preferences throughout the dataset. This significantly reduces the cost of annotation and, because MBK visualizes each model’s behavior pattern, increases the interpretability of the preference decisions.
+Through extensive experiments, we show that ZEBRA achieves performance comparable to existing instance-wise labeling methods in the Ultrafeedback dataset—without any extra labeling cost.
+
+ZERBA Contribution: In summary, our contributions are as follows:
+We introduce ZEBRA, a zero-annotation alignment framework that determines preferences from quantified model-level behavior, bypassing instance-level supervision.
+We demonstrate that the Model Behavior Knowledge (MBK) from benchmark performance offers alignment signals comparable to instance-wise labeling.
+We empirically show that ZEBRA matches the performance of established methods such as RLHF and RLAIF, yet requires no additional labeling cost.
+
+ZEBRA Method - Instance-level Annotation vs. Model behavior-level Annotation: Traditional instance-level binarization relies heavily on detailed, provided by human or AI annotators. Each pairwise comparison demands significant effort and resources to maintain consistency and interpretability. Such an approach often results in annotation noise, limited scalability, and considerable expense.
+In contrast, our proposed ZEBRA framework leverages intrinsic behavioral knowledge derived from model performance across various benchmarks, ZEBRA systematically matches and pairs responses. Responses from models with proven higher competencies form positive labels, while those from models with lower competencies become negative labels. This innovative model-level approach drastically reduces annotation costs, minimizes noise, and enhances scalability. Additionally, the behavior similarity-based matching provides explicit control over the difficulty and nuance of preference comparisons, leading to clearer and more meaningful alignment outcomes.
+
+ZEBRA Method - Model Behavior Knowledge: While most preference-learning pipelines focus on differences between individual responses, our approach highlights Model Behavior Knowledge (MBK)—the comprehensive record of each model’s past behaviors and capabilities. We define MBK using two sets of metrics:
+Superiority: How much better (or worse) a model is compared to others, based on overall or task-specific proficiency.
+Similarity: How likely a model is to behave similarly to other models.
+ These metrics provide a principled basis for quantifying both a model’s general strength and its behavioral proximity to its peers. Within a preference-learning pipeline, superiority functions as a global preference signal: when one model consistently outperforms another across standardized benchmarks, its responses are considered preferable overall.
+Conversely, behavioral similarity facilitates the systematic construction of challenging comparison sets. When two models are behaviorally similar—for example, they exhibit comparable reasoning performance—their responses become difficult to distinguish. Training on such hard-to-distinguish pairs guides the preference learner to focus on subtle qualitative differences, resulting in more nuanced and robust alignment.
+
+ZEBRA Method - Model Behavior Evaluation using Benchmark Performances: To capture MBK in a practical, objective way, we rely on external benchmark performance data for each LLM. Many models are already evaluated across diverse, standardized tasks (e.g., reasoning, factual accuracy, instruction-following). We aggregate these benchmark scores to form each model’s MBK profile. Benchmark performance offers several advantages for extracting MBK: 1) It provides reliable metrics for the core competencies of large language models. 2) It enables straightforward comparison and aggregation across multiple models. 3) Because benchmark scores are published and fixed at release, they impose no constraints on subsequent data or model expansion. 
+For example, the LLaMA-2-13b model exhibits a pattern closely resembling that of its 7b counterpart. In contrast, WizardLM-7b demonstrates a markedly different behavioral trajectory.
+We define a model's ability vector $v_i \in \mathbb{R}^m$ across $m$ benchmark tasks:
+\[
+v_i = \left[ s_{i}^{(1)}, s_{i}^{(2)}, \dots, s_{i}^{(m)} \right],
+\]
+where $s_{i}^{(b)}$ is the normalized score of model $M_i$ on benchmark $b$, reflecting its relative capability in a specific behavioral dimension (e.g., knowledge, reasoning, instruction-following). These standardized behavior vectors serve as the foundation for both quality-based and similarity-based anchoring, enabling \textbf{zero-annotation binarization} of preference pairs without per-instance supervision.
+
+ZEBRA Method - Benchmark-based Model Behavior Quantification: To effectively binarize preference data, it is essential to quantify model behavior from two complementary perspectives: behavior quality and behavior similarity. ZEBRA leverages benchmark-derived measures of these aspects to systematically pair positive responses with suitable negative counterparts. By quantifying both the absolute competency of individual models and the relative similarity between models, ZEBRA ensures that each positive-negative pair captures meaningful contrasts in model capabilities, thus maximizing alignment informativeness.
+
+ZEBRA Method - Model Behavior Superiority (MB-SUP): quantifies the overall behavioral competency of model $M_i$ as the aggregate of its normalized benchmark scores:
+\begin{equation}
+\text{MB-SUP}(M_i) = \frac{1}{m} \sum_{k=1}^{m} s_i^{(b)}.
+\end{equation}
+This scalar value serves as the ranking basis for constructing Behavioral Superiority Anchors.
+
+ZEBRA Method - Model Behavior Similarity (MB-SIM) between models $M_i$ and $M_j$ is defined as the similarity between their behavior vectors:
+\[
+\text{MB-SIM}(M_i, M_j) = \text{similarity}(v_i, v_j).
+\]
+Higher values indicate stronger alignment in general-purpose capabilities, and MB-SIM serves as the criterion for selecting comparable model pairs in Behavioral Similarity Anchoring.
+
+ZEBRA Method - Strategy of Preference Binarization: ZEBRA introduces multiple strategies to systematically convert benchmark-derived model behaviors into binary preference pairs. Based on how MB-SUP and MB-SIM are utilized.
+We detail each strategy below:
+ZEBRA Method - Strategy 1: Superiority-first Anchoring (SUP): In this strategy, we explicitly select the top-two models based on their MB-SUP scores: the highest-scoring model (top-1) and the second-highest-scoring model (top-2). Responses from the top-1 model serve as positive anchors, while responses from the top-2 model become negative counterparts. This approach emphasizes explicit quality distinctions, clearly defining superior responses and ensuring meaningful, informative alignment contrasts.
+
+ZEBRA Method - Strategy 2: Similarity-first Anchoring (SIM): Responses from models sharing similar behavioral patterns (high MB-SIM) are paired first. Within these pairs, the response from the model with higher MB-SUP is selected as the anchor (positive response). This strategy emphasizes behavioral similarity, enhancing nuanced alignment comparisons.
+
+ZEBRA Method - Strategy 3: Hybrid Anchoring (SUP+SIM): Model pairs are selected by simultaneously considering both MB-SUP and MB-SIM criteria. This balanced approach ensures each response pair reflects meaningful contrasts in model quality, while maintaining behavioral similarity for refined granularity.
+
+ZEBRA Method - Zero-Annotation Preference Construction: Given a set of instructions $\mathcal{X}$ and a pool of response-generating models $\mathcal{M}$, the construction proceeds as follows: 1) Model Behavior Evaluation: Each model $M_i \in \mathcal{M}$ is benchmarked across $m$ tasks to obtain model’s ability vector $v_i$.
+2) Pair Selection: Using a chosen strategy, a set of model pairs $\mathcal{P} = \{(M_i, M_j)\}$ is selected where $\text{MB-SIM}(M_i, M_j) \geq \tau$. Our goal is to exclude model pairs that are clearly dissimilar, rather than to finely rank models. As a commonly accepted cutoff for non-similarity, we set $\tau = 0.1$, since cosine similarity values below this threshold indicate a lack of meaningful similarity between models\cite{cosine_similarity}. 
+3) Response Mapping: For each instruction $x \in \mathcal{X}$, the corresponding responses $\{r_i, r_j\}$ from $(M_i, M_j)$ are retrieved.
+4) Preference Assignment: A binary label is assigned via:
+    \[
+    \text{Pref}(r_i, r_j) =
+    \begin{cases}
+    1 & \text{if } S_{\text{pref}}(M_i) > S_{\text{pref}}(M_j), \\
+    0 & \text{otherwise}.
+    \end{cases}
+
+ZEBRA Result - RQ1: Dataset Reconstruction using ZEBRA: The proposed ZEBRA framework enables the application of a unified Total Ranking map across the entire dataset, facilitating a structured and consistent preference mapping process. Utilizing this reconstructed preference dataset, we conducted model training while ensuring that each critic’s binarized response was systematically incorporated. The effectiveness of this reconstructed dataset was assessed by evaluating the trained models on standardized benchmarks.  For evaluation, we employed prediction-based assessment methodologies across all benchmark tasks. Specifically, for ARC, MMLU, and MMLU-Pro, we adapted the MMLU-Pro evaluation framework, modifying only the multiple-choice options to align with our dataset. For IFeval, we leveraged its native evaluation framework to ensure consistency in assessment. To analyze the relationships between models, we computed SUP and SIM by normalizing evaluation results across six benchmark tasks. Generally, smaller-scale models tend to cluster in the first quadrant, models with closer Model Behavior relationships in the second quadrant, while Llama-based models and models exceeding 10B parameters are predominantly distributed in the third and fourth quadrants. This distribution underscores the critical role of model training data, training algorithms, and scale in determining Model Behavior relationships among models. These findings highlight the effectiveness of the ZEBRA framework in reconstructing preference datasets, providing a more structured and informative approach to model alignment.
+
+ZEBRA Result - RQ2: Performance of ZEBRA Binarization: We conducted a human evaluation to assess whether ZEBRA Binarization exhibits trends similar to human preferences. 
+Specifically, we measured the agreement between ZEBRA decisions and human annotators across 150 pairs per strategy with three annotators. The evaluation design follows prior preference-based alignment studies, aiming to quantify the consistency of binarization with human judgment.  ZEBRA-Human agreement rates are comparable to human–human agreement reported in previous studies on label variability (e.g., InstructGPT 72.6\%, HH-RLHF 75\%), indicating that ZEBRA-generated labels serve as credible proxies for preference learning. Furthermore, lower agreement on SIM pairs supports the hypothesis that these pairs are \textit{harder to distinguish}, thereby providing richer alignment signals. This suggests that ZEBRA’s binarization is not only aligned with human preferences but also introduces challenging cases that may enhance model robustness.
+
+ZEBRA Result - Model Performance: Across all benchmark tasks, the Model Behavior-based scoring metric, SUP, demonstrates performance levels nearly equivalent to the instance-wise RLAIF method, with a minimal deviation of only 0.008. Notably, for MMLU-Pro and IFeval, ZEBRA-based binarization even surpasses the RLAIF baseline by approximately 0.01, indicating that structured preference mapping via Model Behavior can yield competitive or superior alignment outcomes. 
+
+ZEBRA Result - RQ3: Cost & Efficiency Analysis: Absolute cost gap: LLM‐annotated RLAIF corpora lower this to \$0.6–\$4\,K by outsourcing each pairwise judgment to GPT‐4, yet they \emph{still purchase every label}.  ZEBRA, by reusing benchmark leaderboards, pays \textbf{no} marginal cost (\$0) for preference construction.
+\textbf{Relative efficiency.}   Normalised per comparison, GPT‐4 labels ($\approx$\$0.063) are $\approx$\,\(\times10\) cheaper than human labels ($\approx$\$0.67), but ZEBRA is \emph{orders of magnitude} cheaper than both because it dispenses with pairwise annotation altogether.
+Cost matters only if quality survives.  Despite a zero‐dollar label budget, ZEBRA \emph{matches or surpasses} RLAIF baseline (Table~\ref{tab:performance_comparison}); the mean performance difference across six benchmarks is $\le 0.02$.  
+Consequently, ZEBRA offers a \textbf{cost‐minimal, scalable, and annotation‐free} route to high‐quality preference data. Because the price of human labor or GPT‐4 tokens scales linearly with data volume, traditional pipelines become progressively more expensive as models, tasks, and safety domains proliferate.  ZEBRA decouples alignment from annotation cost: adding a new model needs no further labels, and incorporating an extra benchmark simply augments the behavior matrix.
+
+ZEBRA Guidelines - Practical Insights and Recommendations: Conventional RLHF or RLAIF pipelines require costly human or LLM-based supervision, 
+but ZEBRA enables an alternative: leveraging existing benchmark performance tables to generate preference signals at zero cost. The procedure for applying ZEBRA in practice can be summarized as follows: 1) Inspect the benchmark performance table for the models of interest. 2) Select two models that exhibit the highest behavioral similarity (MB-SIM) or fall under a chosen binarization strategy (SUP, SIM, or SUP+SIM). 3) Generate responses from each model on the desired instruction set. 4)Use the resulting preference pairs directly for fine-tuning (e.g., SFT or DPO).
+
+WEAVE Introduction - We present a no-code user interface that operationalizes the three components of this thesis---GROVE (visualized selection), Task-Mixture (task composition and analysis), and ZEBRA (behavior-level binarization)---into a single workflow that enables users to construct instruction and alignment datasets with near-zero marginal cost (\(\sim\$0\)) and without writing code. Concretely, the interface provides (i) point-and-click dataset visualization and filtering (OAK Tree, layer-wise JSD variability), (ii) an interactive designer for budget-aware task mixtures with immediate feedback on expected trade-offs, and (iii) a binarization panel that derives preference pairs from model-behavior profiles (SUP/SIM) rather than instance-wise labels. This lowers the barrier for non-programmers and domain experts (e.g., education, law, healthcare) to curate, diagnose, and iteratively refine datasets tailored to their own tasks, while preserving the reproducibility and traceability required for research and production.
+Unlike prior data interfaces that target web-scale pretraining curation, our UI is purpose-built for instruction and alignment tuning. It exposes interpretable, human-controllable strata (verb-anchored OAK groups) alongside model-centric signals (variability from layer-wise divergence), turning abstract analysis into actionable controls. Each operation produces a versioned artifact (subset indices, mixture recipes, and binarized pairs) that can be exported for SFT/DPO pipelines and revisited later, enabling no-code, cost-efficient, and human-in-the-loop dataset engineering consistent with the goals of this dissertation. WEAVE thus functions as an accessible workbench: it makes the “analyze -> select/compose -> binarize” loop executable by any practitioner, not just engineers.
+
+WEAVE Method - System Overview and Design Goals: Its goals are threefold: (1) unify data analysis and selection across modules; (2) enable visual, human-in-the-loop exploration; and (3) ensure experiment traceability and reproducibility.
+
+WEAVE Method - Design Objectives: 1) Unified Access: Connect all analytical modules under a single interface. 2) Cost Efficiency: Because all of our modules are designed for cost-efficient data analysis and optimization, we focused on maximizing their effectiveness under tight compute and budget constraints. 3) Faster Visual Feedback: Provide dashboards for OAK Tree structures, variability distributions, and mixture outcomes, delivering results as quickly as possible by leveraging caching and related optimizations. 4) Reproducibility: Automatically log experiment configurations and export datasets with metadata.
+
+WEAVE Guideline - Data Structuring and Selection (GROVE): 1) Instruction tuning with only the Top-3 Groups is often sufficient for quick performance gains. 2) For models larger than 7B parameters, evenly sample across all Groups. 3) Blending high- and low-variability examples in a 1:1 ratio benefits models exceeding 7B parameters. 3) For small datasets ($<$100K), prioritize high-variability examples.  4) For large datasets, maintain group balance to preserve structural coverage. 
+
+WEAVE Guideline - Optimized Task-wise Composition: Adjust mixture scales and task combinations based on the target model and available compute budget. 
+Separate task pairs with known interference for optimal results.
+When fewer than 500 examples are available, single-task or carefully selected two-task mixtures are most effective. 
+Beyond 750 examples, balanced mixtures of 3--4 tasks become advantageous.
+Language-oriented tasks such as \mix{History} and \mix{Grammar} often serve as stabilizing anchors, improving generalization across other domains. 
+Different model families exhibit distinct performance peaks: Llama: favors smaller data sizes, Mistral: peaks around 500 samples. Qwen: robust across all scales.
+Mixture strategies should therefore be tuned to each model's inductive biases.
+
+WEAVE Guideline - Preference Binarization (ZEBRA Framework): Binarization between models with similar behavior patterns improves alignment quality. The preferred model should have both relative and strong absolute performance.  
+
+WEAVE Guideline - Integration in the WEAVE System: 1) Workflow: The WEAVE system integrates GROVE, task mixture design, and ZEBRA modules within a unified interface. 2) Reproducibility Focus: Every experimental step---selection, mixture design, and binarization---is logged automatically for full reproducibility. 3) Guided Exploration: The user interface visualizes OAK trees, mixture simulations, and binarization steps, enabling practitioners to interpret and adjust outcomes intuitively.
+
+
+WEAVE 개요 (What & Why)
+- 정의: WEAVE는 LLM의 지시문 데이터 엔지니어링을 “선택(GROVE) → 혼합(Task Mixture) → 이원화(ZEBRA)”의 세 축으로 운영화한 일관된 워크벤치입니다.
+- 목표: (1) 모듈 통합(하나의 인터페이스에서 실행), (2) 시각적·사람-루프 탐색, (3) 실험 재현성(메타데이터·설정 자동 로그).
+- RAG 관점의 가치: 
+  • 검색에 투입할 지식/지시문 자원에서 “어떤 것을 남길지”를 구조적으로 선별(GROVE).
+  • QA 도메인/과업 특성에 맞게 학습·필터링 데이터의 과업 비율을 최적화(Task Mixture).
+  • 정렬(선호) 데이터는 비싼 인스턴스 라벨 없이 모델 행동 지식으로 이원화(ZEBRA).
+
+GROVE 핵심 아이디어
+- OAK Tree: 지시문 입력(Doc)에서 “행동 블록(B)”을 추출하고, 첫 동사(Verb, V)를 기준으로 의미적으로 유사한 동사 묶음(Group, G)으로 자동 구조화.
+- Variability Score: 모델의 첫/마지막 레이어 표현의 분포 차이를 지표화하여 “어려움/정보량”을 수치화(Jensen–Shannon divergence 기반). 
+- 그룹 단위 선택: 각 G 내부에서 상위 p%(G-HV), 하위 p%(G-LV), 혼합(G-MIX)을 균형 있게 샘플링해 과업 커버리지와 난이도 균형을 동시에 확보.
+
+GROVE 실무 체크리스트
+- 데이터 정리
+  1) 지시문 텍스트에서 “행동 블록(B)”을 일괄 추출한다.
+  2) B에서 첫 동사(V)를 POS 태깅으로 뽑아 유사 V를 G로 묶는다(OAK Tree).
+- 변동성(Variability) 계산
+  3) 목표 모델 계열과 유사한 베이스 모델을 택해 레이어별 임베딩을 추출한다.
+  4) 샘플별 JSD(첫↔끝 레이어)로 Variability Score를 부여한다.
+- 샘플링 전략
+  5) 각 G에서 G-HV 또는 G-MIX 위주로 p% (예: 10/25/50)만 추린다.
+  6) 전체 비율은 “그룹 균형”을 유지해 특정 유형 과다·과소 샘플링을 방지한다.
+- 실전 팁
+  • 50% 수준의 선택으로도 전체(100%) 대비 동등·상회 성능이 빈번히 관측된다.
+  • Top-k 큰 G만 쓰는 것보다, 모든 G에서 HV를 뽑아 합치는 방식이 일반적으로 더 균형적이다.
+  • 모델을 바꿀 때는 Variability 재계산(모델 특이적 신호) 후 재샘플링이 안전하다.
+
+Task-Mixture 핵심 아이디어
+- 대표 과업 묶음(예: 프로그래밍, 수학, 역사 QA, 문법 교정, 창작)을 정의하고, 임베딩 기반으로 과업별 샘플을 수집한 뒤 예산(토큰/예시 수) 내에서 비율을 탐색한다.
+- 서로의 시너지를 분석해 “목표 과업 최적 조합”과 “균형형 다과업 조합”을 구분 설계한다.
+
+Task-Mixture 실무 체크리스트
+- 목표 설정
+  1) 단일 목표(특정 도메인 강화) vs. 다목적(여러 도메인에서 최소 성능 저하) 중 하나를 명확히 선택한다.
+- 조합 탐색
+  2) 소규모(예: 수백~천 예시) 예산에서 2-과업 조합은 고피크·고분산, 4-과업 조합은 저피크·고안정 경향.
+  3) 일반적 패턴: 프로그래밍은 타 도메인에 광범위한 양의 전이를 주는 반면, 창작은 자기 과업 최적 외에는 이득이 제한적.
+- 모델별 차이
+  4) 동일 예산에서도 모델 계열마다 최적 비율이 다르므로, 소규모 스윕으로 후보 혼합을 먼저 걸러낸다.
+
+ZEBRA 핵심 아이디어
+- 인스턴스 단위 선호 라벨 대신, “모델 행동 지식(공개 벤치마크에서의 능력 프로파일)”을 사용해 응답 쌍(선택/거부)을 자동 이원화한다.
+- 전략: (SUP) 더 우수한 모델의 응답을 선호로 택하기, (SIM) 능력 프로파일이 유사한 모델들 사이에서 상대적 우열을 택하기, (혼합) 두 전략 병행.
+- 비용: 벤치마크 점수표만으로 페어링·응답생성·이원화를 구성하므로 라벨 비용이 0에 가깝다.
+
+ZEBRA 실무 체크리스트
+- 준비물
+  1) 지식·추론·지시이행 등 핵심 축의 벤치마크 성적표(모델별)를 테이블화.
+  2) 대상 모델 군(생성용)과 기준 모델 군(선호 판단용) 목록.
+- 파이프라인
+  3) 벤치마크 기반으로 모델 유사도/우열을 산출하여 모델 페어를 만든다.
+  4) 각 페어가 동일 프롬프트에 대해 생성한 두 응답 중 우수/열등을 자동 판정해(전략: SUP, SIM) 선호쌍을 만든다.
+  5) DPO/SFT 등 정렬 학습에 투입한다.
+- 모델 크기별 팁
+  • 소형 모델: SUP 전략이 더 안정적으로 작동하는 경향.
+  • 대형 모델: SIM 전략이 더 효율적인 경우가 많음.
