@@ -48,6 +48,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/weavy/v1': {
+        target: 'http://localhost:8084',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
 });

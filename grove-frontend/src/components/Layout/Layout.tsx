@@ -6,6 +6,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { useBinarizationStore } from '../../store/useBinarizationStore';
 // icons removed: dark mode toggle deleted
 import iconUrl from '@/assets/weave.png';
+import { ChatWidget } from '@/components/ChatWidget';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -102,6 +103,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         {children}
       </main>
       <Footer />
+      {/* Chat Widget - fixed to bottom-right */}
+      <ChatWidget />
     </div>
   );
 };
