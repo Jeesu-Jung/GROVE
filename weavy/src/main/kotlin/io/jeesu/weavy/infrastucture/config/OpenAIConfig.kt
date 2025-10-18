@@ -3,7 +3,7 @@ package io.jeesu.weavy.infrastucture.config
 import dev.langchain4j.model.chat.ChatModel
 import dev.langchain4j.model.embedding.EmbeddingModel
 import dev.langchain4j.model.openai.OpenAiChatModel
-import dev.langchain4j.model.openai.OpenAiChatModelName.GPT_5_MINI
+import dev.langchain4j.model.openai.OpenAiChatModelName.GPT_5
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel
 import dev.langchain4j.model.openai.OpenAiEmbeddingModelName.TEXT_EMBEDDING_3_SMALL
 import org.springframework.beans.factory.annotation.Value
@@ -26,7 +26,7 @@ class OpenAIConfig(
     fun chatModel(): ChatModel {
       return OpenAiChatModel.builder()
           .apiKey(openaiApiKey)
-          .modelName(GPT_5_MINI)
+          .modelName(GPT_5)
           .build()
     }
 }
