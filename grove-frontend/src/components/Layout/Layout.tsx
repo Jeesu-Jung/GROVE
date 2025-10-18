@@ -19,6 +19,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const isOptimization = location.pathname.startsWith('/optimization');
   const isBinarization = location.pathname.startsWith('/binarization');
+  const isDocs = location.pathname.startsWith('/docs');
+  const lastFunctionalPathRef = React.useRef<string>('/');
   const isUploadRoot = location.pathname === '/';
   const currentPage = React.useMemo(() => {
     if (location.pathname.startsWith('/sampling')) return 4;
@@ -36,11 +38,19 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     setError(null);
   }, [location.pathname, setError]);
 
+  // 문서가 아닌 경로에 있을 때 마지막 기능 경로를 저장
+  React.useEffect(() => {
+    if (!isDocs) {
+      lastFunctionalPathRef.current = selectedPath;
+    }
+  }, [isDocs, selectedPath]);
+
   const weaveLabel = React.useMemo(() => {
+    if (isDocs) return 'WEAVE DOCUMENT';
     if (selectedPath === '/optimization') return 'WEAVE-TASK MIXTURE';
     if (selectedPath === '/binarization') return 'WEAVE-ZEBRA';
     return 'WEAVE-GROVE';
-  }, [selectedPath]);
+  }, [isDocs, selectedPath]);
 
   React.useEffect(() => {
     document.title = weaveLabel;
@@ -57,32 +67,46 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               <h1 className="text-xl font-bold text-gray-900">
             {weaveLabel}
               </h1>
-              <div className="mt-0.5">
-                <select
-                  aria-label="기능 선택"
-                  className="text-sm text-gray-700 bg-transparent border border-gray-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  value={selectedPath}
-                  onChange={(e) => {
-                    if (!e.target.value.startsWith('/binarization')) {
-                      resetBinarization();
-                    }
-                    navigate(e.target.value);
-                  }}
-                >
-                  <option value="/" className="text-gray-900">
-                    Dataset Visualization and Selection (GROVE)
-                  </option>
-                  <option value="/optimization" className="text-gray-900">
-                    Optimized Task-Mixture Design
-                  </option>
-                  <option value="/binarization" className="text-gray-900">
-                    Automatic Data Binarization (ZEBRA)
-                  </option>
-                </select>
-              </div>
+              {!isDocs && (
+                <div className="mt-0.5">
+                  <select
+                    aria-label="기능 선택"
+                    className="text-sm text-gray-700 bg-transparent border border-gray-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    value={selectedPath}
+                    onChange={(e) => {
+                      if (!e.target.value.startsWith('/binarization')) {
+                        resetBinarization();
+                      }
+                      navigate(e.target.value);
+                    }}
+                  >
+                    <option value="/" className="text-gray-900">
+                      Dataset Visualization and Selection (GROVE)
+                    </option>
+                    <option value="/optimization" className="text-gray-900">
+                      Optimized Task-Mixture Design
+                    </option>
+                    <option value="/binarization" className="text-gray-900">
+                      Automatic Data Binarization (ZEBRA)
+                    </option>
+                  </select>
+                </div>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (isDocs) {
+                  navigate(lastFunctionalPathRef.current || '/');
+                } else {
+                  navigate('/docs/grove');
+                }
+              }}
+              className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              {isDocs ? 'WEAVE' : 'Document'}
+            </button>
             <button
               onClick={() => { reset(); navigate('/'); }}
               className="px-3 py-2 rounded-lg bg-gray-100 text-sm text-gray-700 hover:bg-gray-200 transition-colors"
@@ -93,8 +117,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </header>
 
-      {/* Progress Indicator (숨김: 업로드 루트에서는 페이지 내부에서 렌더링) */}
-      {!isOptimization && !isBinarization && !isUploadRoot && (
+      {/* Progress Indicator: 문서 페이지(/docs/*) 및 업로드 루트에서 숨김 */}
+      {!isOptimization && !isBinarization && !isUploadRoot && !location.pathname.startsWith('/docs') && (
         <ProgressIndicator currentStep={currentPage} />
       )}
 

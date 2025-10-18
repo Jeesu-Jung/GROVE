@@ -11,6 +11,9 @@ import UploadStep from './pages/binarization/UploadStep';
 import ModelsStep from './pages/binarization/ModelsStep';
 import RunStep from './pages/binarization/RunStep';
 import ResultsStep from './pages/binarization/ResultsStep';
+import { DocsGrove } from './pages/docs/DocsGrove';
+import { DocsMixture } from './pages/docs/DocsMixture';
+import { DocsZebra } from './pages/docs/DocsZebra';
 
 function App() {
   const { error, setError } = useAppStore();
@@ -39,6 +42,10 @@ function App() {
 
         <Routes>
           <Route path="/" element={<Upload />} />
+          <Route path="/docs" element={<Navigate to="/docs/grove" replace />} />
+          <Route path="/docs/grove" element={<DocsGrove />} />
+          <Route path="/docs/mixture" element={<DocsMixture />} />
+          <Route path="/docs/zebra" element={<DocsZebra />} />
           <Route path="/statistics" element={<Statistics />} />
           <Route path="/domain-analysis" element={<DomainAnalysis />} />
           <Route path="/sampling" element={<Sampling />} />
