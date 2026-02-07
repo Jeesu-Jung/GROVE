@@ -1,8 +1,4 @@
-## 모델 다운로드
-https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct/tree/main 의 파일들을 모두 다운로드 후 model/Llama-3.2-1B-Instruct 에 넣어주세요.
-
 ## API 서버 실행
-
 8083 포트로 FastAPI 서버를 실행합니다.
 
 ```bash
@@ -24,7 +20,7 @@ curl -X POST \
 {
   "code": "OK",
   "message": "Success",
-  "data": {"dec_score": 234.7866210938}
+  "data": {"dec_score": 360.9709167480469}
 }
 ```
 

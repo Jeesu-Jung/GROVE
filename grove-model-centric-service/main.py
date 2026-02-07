@@ -11,6 +11,10 @@ import hashlib
 from contextlib import asynccontextmanager
 
 
+# HuggingFace 모델 ID
+MODEL_ID = "meta-llama/Llama-3.2-1B-Instruct" #  (hf auth login 으로 사전 인증 필요)
+
+
 class VariabilityRequest(BaseModel):
     inputs: str
 
@@ -42,11 +46,11 @@ def svc_key_builder(func, namespace: str, request=None, response=None, *args, **
 
 
 class VariabilityService:
-    def __init__(self, model_path: str = "./model/Llama-3.2-1B-Instruct") -> None:
-        self.tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
+    def __init__(self, model_id: str = MODEL_ID) -> None:
+        self.tokenizer = AutoTokenizer.from_pretrained(model_id)
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.model = AutoModel.from_pretrained(model_path, output_hidden_states=True)
+        self.model = AutoModel.from_pretrained(model_id, output_hidden_states=True)
         self.model.eval()
 
     @cache(expire=None, key_builder=svc_key_builder)
