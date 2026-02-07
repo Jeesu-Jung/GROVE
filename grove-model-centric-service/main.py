@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Body, HTTPException
 from pydantic import BaseModel
+import os
 import torch
 from torch import nn
 from transformers import AutoTokenizer, AutoModel
@@ -46,7 +47,9 @@ class VariabilityService:
         self.tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.model = AutoModel.from_pretrained(model_path, output_hidden_states=True)
+        self.model = AutoModel.from_pretrained(
+            model_path, output_hidden_states=True, local_files_only=True
+        )
         self.model.eval()
 
     @cache(expire=None, key_builder=svc_key_builder)
@@ -61,7 +64,8 @@ class VariabilityService:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    redis = aioredis.from_url("redis://localhost:6379")
+    redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
+    redis = aioredis.from_url(redis_url)
     FastAPICache.init(RedisBackend(redis), prefix="grove:model-centric:variability")
     try:
         yield
@@ -70,7 +74,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-service = VariabilityService()
+model_dir = os.getenv("MODEL_DIR", "./model/Llama-3.2-1B-Instruct")
+service = VariabilityService(model_path=model_dir)
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
 
 
 @app.post("/v1/model-centric/llama-3.2-1b-instruct/variability/extract")
@@ -84,6 +93,12 @@ async def extract_variability(req: VariabilityRequest = Body(...)):
         "message": "Success",
         "data": {"dec_score": dec_score},
     }
+
+
+@app.post("/v1/model-centric/variability/extract")
+async def extract_variability_legacy(req: VariabilityRequest = Body(...)):
+    # Backward-compatible endpoint (referenced by docs/clients)
+    return await extract_variability(req)
 
 
 def get_app() -> FastAPI:
