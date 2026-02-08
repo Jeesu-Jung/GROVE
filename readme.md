@@ -1,7 +1,12 @@
 # WEAVE
 
 **WEAVE** (Well-structured Empirical workflows in Analysis, Visualized selection, and Efficient binarization) is a unified workbench for LLM instruction data engineering.
-It integrates three core modules: **GROVE** for hybrid data selection combining verb-anchored grouping with model-centric variability scoring, **MOSS** for budget-aware task composition analysis, and **ZEBRA** for zero-annotation preference binarization using model behavior knowledge.
+It integrates three core modules: 
+
+- **Grouped Refinement of Organized Variability Estimation (GROVE)** for total dataset automatic visualization and hybrid data selection combining verb-anchored grouping with model-centric variability scoring,
+- **Mixture Optimization for Structured Subtasks (MOSS)** for budget-aware task composition analysis, and
+- **ZEro annotation Behavior-based Response Alignment (ZEBRA)** for zero-annotation preference binarization using model behavior knowledge. [ZEBRA](https://aclanthology.org/2025.findings-emnlp.417/) page provides a prototype feature for automatic binarization to support alignment tuning.
+
 Together, these components enable practitioners to achieve better accuracy-per-token and accuracy-per-GPU-hour than training on unstructured, fully scaled datasets.
 
 ## Table of Contents
@@ -272,3 +277,4 @@ docker compose config
 docker compose down
 docker compose up -d --build
 ```
+
