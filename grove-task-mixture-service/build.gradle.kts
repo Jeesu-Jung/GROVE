@@ -22,6 +22,7 @@ repositories {
 dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("org.springframework.boot:spring-boot-starter-web")
+	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("org.springframework.boot:spring-boot-starter-cache")
 	implementation("org.springframework.boot:spring-boot-starter-data-redis")
 	implementation("io.milvus:milvus-sdk-java:2.6.2")

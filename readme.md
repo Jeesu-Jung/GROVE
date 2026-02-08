@@ -1,126 +1,274 @@
-# Data Selection and Labeling Tool
+# WEAVE
 
-## 📋 Overview
-This project is a **Streamlit-based data selection and labeling tool** designed to help users upload, label, visualize, and filter textual data using various sampling methods. The tool integrates with the **OpenAI GPT-4 model** to automatically label data based on predefined **topic** and **task categories**.
+**WEAVE** (Well-structured Empirical workflows in Analysis, Visualized selection, and Efficient binarization) is a unified workbench for LLM instruction data engineering.
+It integrates three core modules: **GROVE** for hybrid data selection combining verb-anchored grouping with model-centric variability scoring, **MOSS** for budget-aware task composition analysis, and **ZEBRA** for zero-annotation preference binarization using model behavior knowledge.
+Together, these components enable practitioners to achieve better accuracy-per-token and accuracy-per-GPU-hour than training on unstructured, fully scaled datasets.
 
-The tool is divided into four main pages:
-1. **Data Upload**: Upload your JSON data file and define input/output columns.
-2. **Data Labeling**: Use GPT-4 to automatically label the data with specific `Topic` and `Task` labels.
-3. **Data Visualization**: Visualize labeled data through different distribution and frequency charts.
-4. **Data Filtering**: Filter labeled data based on frequency, top-k sampling, and topic-task combinations.
+## Table of Contents
 
-## 🔧 Features
-### Data Upload (`1_upload.py`)
-- Allows users to upload a JSON file.
-- Users can specify the **input** and **output** columns for further processing.
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+- [Included Services](#included-services)
+- [Key Commands](#key-commands)
+- [Troubleshooting](#troubleshooting)
 
-### Data Labeling (`2_labeling.py`)
-- Automatically labels the uploaded data using **OpenAI's GPT-4**.
-- Provides predefined `Topic` and `Task` labels for consistent classification.
+## Prerequisites
 
-### Data Visualization (`3_visualization.py`)
-- Visualizes the labeled data using **four types of bar plots**:
-  1. **Input sentence length distribution**
-  2. **Output sentence length distribution**
-  3. **Topic frequency distribution**
-  4. **Task frequency distribution**
+The following software must be installed:
 
-### Data Filtering (`4_filtering.py`)
-- Supports various filtering and sampling techniques:
-  1. **Frequency-based sampling**: Random, length-based, topic/task-based.
-  2. **Top-k sampling**: Extracts top-k examples per `Topic` or `Task`.
-  3. **Topic x Task combinations**: Filter data based on specific combinations of `Topic` and `Task`.
+- **Docker**: 20.10 or higher
+- **Docker Compose**: 2.0 or higher
 
-## 🚀 Requirements
-To run this project, you need the following Python packages:
+Verify installation:
+```bash
+docker --version
+docker compose version
+```
 
-- **Streamlit** (latest version)
-- **pandas**
-- **openai**
-- **matplotlib**
+## Quick Start
 
-Install the required libraries using:
+### 1. Configure Environment Variables
 
 ```bash
-pip install streamlit pandas openai matplotlib
+# Copy .env.example to .env
+cp .env.example .env
+
+# Edit the .env file to set environment variables
 ```
+[Environment Variables Guide](#environment-variables)
 
-You will also need an **OpenAI API key** to use the labeling functionality. Get your API key from [OpenAI](https://platform.openai.com/account/api-keys) and provide it in the Data Labeling page when prompted.
-
-## 📂 Project Structure
-The project is divided into the following files:
-
-```
-project_directory/
-├── app.py                    # Main Streamlit file for page navigation
-├── requirements.txt          # Required packages for the project
-└── pages/
-    ├── 1_upload.py           # Data Upload Page
-    ├── 2_labeling.py         # Data Labeling Page
-    ├── 3_visualization.py    # Data Visualization Page
-    └── 4_filtering.py        # Data Filtering Page
-```
-
-## 📊 How to Run
-1. **Clone** the repository to your local machine.
-2. **Navigate** to the project directory.
-3. **Run** the Streamlit application using the command:
+### 2. Run the Full Stack
 
 ```bash
-streamlit run app.py
+# Build and run all services (including Milvus + Redis)
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Check status
+docker compose ps
 ```
 
-4. Open the **localhost URL** provided by Streamlit in your browser.
-5. Use the **sidebar** to navigate through the different pages.
+### 3. Initialize Data (Embedding)
 
-## 💡 Usage Guide
-1. **Upload your Data**: Start with the **Data Upload** page to upload your JSON file and define the input and output columns.
-2. **Label your Data**: Move to the **Data Labeling** page and run the automatic labeling process using your OpenAI API key.
-3. **Visualize your Data**: Analyze the labeled data through various distribution and frequency charts in the **Data Visualization** page.
-4. **Filter your Data**: Filter and sample your data based on various criteria in the **Data Filtering** page.
-5. **Download the Data**: Download the filtered or labeled data in JSON or CSV format using the provided download buttons.
+Run once with **optional profiles** to populate embedding data in Milvus (OpenAI API costs may apply).
 
-## 🧩 Example Labels
-The tool uses predefined **Topic** and **Task** labels for consistent labeling. Below are the categories:
+```bash
+# MOSS embedding index (seed_sentence + instruction_alpaca)
+docker compose --profile embed run --rm grove-task-mixture-embed
 
-**Topic Labels**:
-- Computer Science, Information & General Works
-- Philosophy & Psychology
-- Religion
-- Social Sciences
-- Language
-- Science
-- Technology
-- Arts & Recreation
-- Literature
-- History & Geography
+# Weavy document embedding (for RAG chatbot)
+docker compose --profile ingest run --rm weavy-ingest
+```
 
-**Task Labels**:
-- Linguistic Analysis
-- Text Classification
-- Information Extraction
-- Creative Generation
-- Transformative Generation
-- Information Retrieval
-- Question Answering
-- Translation
+### 4. Access Services
 
-## 📝 Future Extensions
-- **Enhanced Labeling Options**: Add more customizable labeling options.
-- **Additional Filtering Methods**: Introduce advanced filtering methods like custom regex-based filtering.
-- **Interactive Visualizations**: Replace static plots with interactive ones using Plotly.
+### Web Interfaces
 
-## ✨ Contribution
-Feel free to fork this repository and create a pull request with any improvements or bug fixes.
+| Service | URL | Description |
+|---------|-----|-------------|
+| Frontend | http://localhost | Main Web UI |
+| Attu | http://localhost:8000 | Milvus GUI Management Tool |
 
-## 🛠️ Troubleshooting
-If you encounter any issues, check the following:
 
-- Ensure you have a valid **OpenAI API key** for the labeling functionality.
-- Make sure all required Python packages are installed (`requirements.txt`).
-- Verify that your JSON file is properly formatted.
+### Health Check
 
-For further assistance, please create an issue in the repository or reach out to the project owner.
+Check the status of all services:
 
-## 🙌 Acknowledgements
-Special thanks to the OpenAI team for providing the powerful GPT models that make this tool possible.
+```bash
+# Overall service status
+docker compose ps
+
+# Individual service health checks
+curl http://localhost:8080/actuator/health  # Cache Service
+curl http://localhost:8081/actuator/health  # Task Mixture
+curl http://localhost:8082/actuator/health  # Zebra Service
+curl http://localhost:8083/health           # Model Centric
+curl http://localhost:8084/actuator/health  # Weavy
+curl http://localhost/health                # Frontend
+```
+
+## Included Services
+
+- **Milvus** (Vector Database) + etcd, MinIO
+- **Attu** (Milvus GUI Management Tool)
+- **Redis** (Caching)
+- **Backend Services** × 5 (Cache, Task Mixture, Zebra, Model Centric, Weavy)
+- **Frontend**
+
+## Environment Variables
+
+Key environment variables in the `.env` file:
+
+### Required Environment Variables
+
+```env
+# OpenAI API Key (required for Weavy service)
+OPENAI_API_KEY=sk-proj-your-actual-key-here
+
+# Hugging Face Token (required for model downloads in grove-model-centric-service)
+# Get your token at https://huggingface.co/settings/tokens
+HF_TOKEN=hf_your-token-here
+```
+
+### Optional Environment Variables
+
+```env
+# Redis settings (default: redis:6379)
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_URL=redis://redis:6379
+
+# Milvus settings (default: milvus:19530)
+MILVUS_HOST=milvus
+MILVUS_PORT=19530
+MILVUS_URI=http://milvus:19530
+
+# Service ports (recommended to use defaults)
+CACHE_SERVICE_PORT=8080
+TASK_MIXTURE_PORT=8081
+ZEBRA_SERVICE_PORT=8082
+MODEL_CENTRIC_PORT=8083
+WEAVY_PORT=8084
+FRONTEND_PORT=80
+```
+
+## Key Commands
+
+### Start and Stop
+
+```bash
+# Start the full stack (background)
+docker compose up -d
+
+# Start the full stack (with logs)
+docker compose up
+
+# Stop the full stack
+docker compose down
+
+# Stop + remove volumes (reset all data)
+docker compose down -v
+```
+
+### View Logs
+
+```bash
+# Follow all service logs in real-time
+docker compose logs -f
+
+# Follow logs for a specific service
+docker compose logs -f grove-cache-service
+docker compose logs -f weavy
+
+# View only the last 100 lines
+docker compose logs --tail=100
+```
+
+### Restart Services
+
+```bash
+# Restart all services
+docker compose restart
+
+# Restart a specific service
+docker compose restart grove-cache-service
+
+# Rebuild and restart a service
+docker compose up -d --build grove-cache-service
+```
+
+### Check Status
+
+```bash
+# List running containers
+docker compose ps
+
+# Detailed status (CPU, memory usage)
+docker stats
+
+# Detailed info for a specific service
+docker compose logs grove-cache-service
+```
+
+### Data Management
+
+```bash
+# List volumes
+docker volume ls | grep grove
+
+# Volume details
+docker volume inspect grove_milvus-data
+
+# Clean up unused volumes
+docker volume prune
+
+# Reset all data (caution!)
+docker compose down -v
+```
+
+### Build
+
+```bash
+# Build all images
+docker compose build
+
+# Build without cache
+docker compose build --no-cache
+
+# Build a specific service
+docker compose build grove-cache-service
+
+# Parallel build (faster)
+docker compose build --parallel
+```
+
+## Troubleshooting
+
+
+### Port Conflict
+
+**Symptom**: `port is already allocated` error
+
+**Solution**:
+```bash
+# Check which process is using the port (macOS/Linux)
+lsof -i :8080
+
+# Change the port in the .env file
+CACHE_SERVICE_PORT=18080
+
+# Or kill the existing process
+kill -9 <PID>
+```
+
+### Out of Memory
+
+**Symptom**: Service terminated due to OOM
+
+**Solution**:
+```bash
+# Check Docker memory settings (Docker Desktop)
+# Settings > Resources > Memory — allocate at least 8GB
+
+# Or run only selected services
+docker compose up -d redis grove-cache-service grove-frontend
+```
+
+### Environment Variables Not Applied
+
+**Symptom**: Default values are still being used
+
+**Solution**:
+```bash
+# Verify .env file location (same directory as docker-compose.yml)
+ls -la .env
+
+# Check environment variables
+docker compose config
+
+# Rebuild and restart
+docker compose down
+docker compose up -d --build
+```

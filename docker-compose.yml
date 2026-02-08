@@ -63,7 +63,7 @@ services:
       - grove-network
 
   milvus:
-    image: milvusdb/milvus:v2.6.2
+    image: milvusdb/milvus:v2.6.8
     container_name: grove-milvus
     command: ["milvus", "run", "standalone"]
     security_opt:
@@ -92,6 +92,20 @@ services:
     networks:
       - grove-network
 
+  attu:
+    image: zilliz/attu:v2.6
+    container_name: grove-attu
+    ports:
+      - "${ATTU_PORT:-8000}:3000"
+    environment:
+      - MILVUS_URL=milvus:19530
+    depends_on:
+      milvus:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - grove-network
+
   # ============================================
   # One-shot Embedding Indexer (optional)
   # ============================================
@@ -114,6 +128,30 @@ services:
       - INSTRUCTION_ALPACA_COLLECTION=instruction_alpaca
     depends_on:
       milvus:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - grove-network
+
+  weavy-ingest:
+    image: curlimages/curl:latest
+    container_name: grove-weavy-ingest
+    profiles: ["ingest"]
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        echo "Waiting for weavy to be ready..."
+        until curl -sf http://weavy:8084/actuator/health > /dev/null 2>&1; do
+          echo "  weavy not ready, retrying in 5s..."
+          sleep 5
+        done
+        echo "weavy is ready. Starting ingest..."
+        curl -sf -X POST http://weavy:8084/weavy/v1/ingest \
+          -H "Content-Type: application/json" \
+          -w "\nHTTP Status: %{http_code}\n"
+        echo "Ingest complete."
+    depends_on:
+      weavy:
         condition: service_healthy
     restart: "no"
     networks:
@@ -199,9 +237,7 @@ services:
       - "${MODEL_CENTRIC_PORT:-8083}:8083"
     environment:
       - REDIS_URL=redis://redis:6379
-      - MODEL_DIR=/app/model/Llama-3.2-1B-Instruct
-    volumes:
-      - ${MODEL_PATH:-./grove-model-centric-service/model}:/app/model:ro
+      - HF_TOKEN=${HF_TOKEN:-}
     depends_on:
       redis:
         condition: service_healthy

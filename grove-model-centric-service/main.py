@@ -12,6 +12,8 @@ from fastapi_cache.decorator import cache
 import redis.asyncio as aioredis
 import hashlib
 from contextlib import asynccontextmanager
+import asyncio
+import os
 
 
 # ──────────────────────────────────────────────
@@ -92,7 +94,7 @@ def _unload_model(model, tokenizer):
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-    if hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache"):
+    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
         torch.mps.empty_cache()
     print("[MODEL] Unloaded ✓")
 
@@ -120,7 +122,7 @@ async def _cached_extract(model_name: str, inputs: str) -> float:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    redis = aioredis.from_url("redis://localhost:6379")
+    redis = aioredis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"))
     FastAPICache.init(RedisBackend(redis), prefix="grove:model-centric:variability")
     try:
         yield
@@ -129,6 +131,11 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+
+@app.get("/health")
+async def health():
+    return {"status": "UP"}
 
 
 @app.get("/v1/model-centric/models")
@@ -217,7 +224,17 @@ async def batch_extract_variability(
         # 2) 캐시 미스가 있을 때만 모델을 1회 로드하여 순차 처리
         if uncached_indices:
             model_id = MODEL_REGISTRY[model_name]
-            tokenizer, model = _load_model(model_id)
+
+            # 모델 로딩을 별도 스레드에서 실행하면서 heartbeat 전송
+            loop = asyncio.get_event_loop()
+            load_task = loop.run_in_executor(None, _load_model, model_id)
+            while True:
+                done, _ = await asyncio.wait({asyncio.ensure_future(load_task)}, timeout=10)
+                if done:
+                    break
+                yield f"event: heartbeat\ndata: {json.dumps({'status': 'loading_model', 'model': model_id})}\n\n"
+            tokenizer, model = load_task.result()
+
             try:
                 for i in uncached_indices:
                     score = _compute_single(tokenizer, model, req.inputs[i])
