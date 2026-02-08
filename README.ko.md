@@ -1,8 +1,11 @@
 # WEAVE
 
 **WEAVE** (Well-structured Empirical workflows in Analysis, Visualized selection, and Efficient binarization)는 LLM 지시문 데이터 엔지니어링을 위한 통합 워크벤치입니다.
-동사 기반 그룹핑과 모델 중심 변동성 스코어링을 결합한 하이브리드 데이터 선택(**GROVE**), 예산 기반 과업 혼합 분석(**MOSS**), 모델 행동 지식을 활용한 제로 어노테이션 선호 이원화(**ZEBRA**) 세 가지 핵심 모듈을 통합합니다.
-이를 통해 비구조적이고 전체 규모의 데이터셋으로 학습하는 것보다 더 높은 토큰당 정확도 및 GPU 시간당 정확도를 달성할 수 있습니다.
+
+* **Grouped Refinement of Organized Variability Estimation (GROVE)**: 전체 데이터셋의 자동 시각화와, **동사(verb) 앵커 기반 그룹화**와 **모델 중심 변동성(variability) 점수화**를 결합한 **하이브리드 데이터 선택**
+* **Mixture Optimization for Structured Subtasks (MOSS)**: 예산 제약을 고려한 **태스크 조합(task composition) 분석**
+* **ZEro-annotation Behavior-based Response Alignment (ZEBRA)**: 모델의 행동 지식을 활용해 **주석 없이(zero-annotation) 선호(preference)를 이진화(binarization)**
+  *(ZEBRA 페이지는 정렬 튜닝(alignment tuning)을 지원하기 위한 자동 이진화 기능의 프로토타입(시험적 기능)을 제공합니다.)*
 
 ## 목차
 
@@ -272,4 +275,5 @@ docker compose config
 docker compose down
 docker compose up -d --build
 ```
+
 
