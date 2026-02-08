@@ -25,9 +25,11 @@ import { LLMModel, DatasetRow, InstructionAssignment } from '../types';
 const MODELS: { id: LLMModel; name: string; provider: string }[] = [
   { id: 'claude-sonnet-4-20250514', name: 'Claude 4 Sonnet', provider: 'Anthropic' },
   { id: 'claude-opus-4-20250514', name: 'Claude 4 Opus', provider: 'Anthropic' },
-  { id: 'gpt-4', name: 'GPT-4', provider: 'OpenAI' },
-  { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', provider: 'OpenAI' },
-  { id: 'gpt-5', name: 'GPT-5', provider: 'OpenAI' },
+  // { id: 'claude-sonnet-4-5-20250929', name: 'Claude 4.5 Sonnet', provider: 'Anthropic' },
+  // { id: 'claude-opus-4-6', name: 'Claude 4.6 Opus', provider: 'Anthropic' },
+  { id: 'gpt-5.2', name: 'GPT-5.2', provider: 'OpenAI' },
+  // { id: 'gpt-5.2-codex', name: 'GPT-5.2 Codex', provider: 'OpenAI' },
+  // { id: 'gpt-5.1-codex-mini', name: 'GPT-5.1 Codex Mini', provider: 'OpenAI' },
   { id: 'gpt-5-mini', name: 'GPT-5 Mini', provider: 'OpenAI' },
   { id: 'gpt-5-nano', name: 'GPT-5 Nano', provider: 'OpenAI' },
 ];
