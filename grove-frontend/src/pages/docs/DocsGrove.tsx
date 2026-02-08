@@ -13,7 +13,7 @@ export const DocsGrove: React.FC = () => {
             <div className="text-sm font-semibold text-gray-800">Guide</div>
             <ul className="mt-3 space-y-2 text-sm">
               <li><Link to="/docs/grove" className="block px-2 py-1 rounded bg-gray-50 text-gray-800">WEAVE-GROVE</Link></li>
-              <li><Link to="/docs/mixture" className="block px-2 py-1 rounded hover:bg-gray-50 text-gray-700">WEAVE-TASK MIXTURE</Link></li>
+              <li><Link to="/docs/mixture" className="block px-2 py-1 rounded hover:bg-gray-50 text-gray-700">WEAVE-MOSS</Link></li>
               <li><Link to="/docs/zebra" className="block px-2 py-1 rounded hover:bg-gray-50 text-gray-700">WEAVE-ZEBRA</Link></li>
             </ul>
           </nav>

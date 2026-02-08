@@ -89,8 +89,8 @@ export class LLMService {
   private buildPromptForSingle(instruction: string): string {
     return `You are a helpful assistant that labels text data.\n\n` +
       `Given the following text: "${instruction}", classify it into a Topic and a Task.\n\n` +
-      `Available Topics: Computer Science, Information & General Works, Philosophy & Psychology, Religion, Social Sciences, Language, Science, Technology, Arts & Recreation, Literature, History & Geography.\n\n` +
-      `Available Tasks: Linguistic Analysis, Text Classification, Information Extraction, Creative Generation, Transformative Generation, Information Retrieval, Question Answering, Translation.\n\n` +
+      `Available Topics: Computer Science, Information & General Works, Philosophy & Psychology, Religion, Social Sciences, Language, Science, Technology, Arts & Recreation, Literature, History & Geography, and Other.\n\n` +
+      `Available Tasks: Linguistic Analysis, Information Retrieval, Information Extraction, Text Classification, Question Answering, Transformative Generation, Translation, Summarization, Creative Generation, Dialogue, and Other.\n\n` +
       `Respond ONLY with strict valid JSON (no prose) using this schema with double quotes and no trailing commas:\n` +
       `{\n` +
       `  "topic": "<One of the Topics>",\n` +

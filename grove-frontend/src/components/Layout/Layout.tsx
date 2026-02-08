@@ -47,7 +47,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const weaveLabel = React.useMemo(() => {
     if (isDocs) return 'WEAVE DOCUMENT';
-    if (selectedPath === '/optimization') return 'WEAVE-TASK MIXTURE';
+    if (selectedPath === '/optimization') return 'WEAVE-MOSS';
     if (selectedPath === '/binarization') return 'WEAVE-ZEBRA';
     return 'WEAVE-GROVE';
   }, [isDocs, selectedPath]);
@@ -84,7 +84,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                       Dataset Visualization and Selection (GROVE)
                     </option>
                     <option value="/optimization" className="text-gray-900">
-                      Optimized Task-Mixture Design
+                      Mixture Optimization for Structured Subtasks (MOSS)
                     </option>
                     <option value="/binarization" className="text-gray-900">
                       Automatic Data Binarization (ZEBRA)

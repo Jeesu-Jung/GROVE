@@ -76,6 +76,13 @@ export const Optimization: React.FC = () => {
     fetchCombos();
   }, [setError]);
 
+  // Display label mapping for model keys
+  const modelDisplayNames: Record<string, string> = {
+    llama: 'meta-llama/Llama-3.1-8B',
+    mistral: 'mistralai/Mistral-7B-v0.1',
+    qwen: 'Qwen/Qwen2.5-7B',
+  };
+
   // Derived options
   const modelOptions = React.useMemo(() => {
     const set = new Set<string>();
@@ -257,11 +264,36 @@ export const Optimization: React.FC = () => {
     <div className="py-8 space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Optimized Task-Mixture Design
+          Mixture Optimization for Structured Subtasks
         </h2>
         <p className="mt-1 text-gray-600 dark:text-gray-300">
           Select model, data size, and task to search the optimal combination.
         </p>
+      </div>
+
+      {/* Dataset Info Notice */}
+      <div className="rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 dark:border-blue-800/50 px-5 py-4 flex items-start gap-3">
+        <span className="mt-0.5 text-blue-500 dark:text-blue-400 flex-shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+          </svg>
+        </span>
+        <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+          <p className="font-semibold text-gray-800 dark:text-gray-100 mb-1">Dataset Notice</p>
+          <p>
+            This optimization process is conducted using a <span className="font-medium text-blue-700 dark:text-blue-300">small-scale subset</span> of the{' '}
+            <a
+              href="https://huggingface.co/datasets/yahma/alpaca-cleaned"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-blue-600 dark:text-blue-400 underline underline-offset-2 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+            >
+              Alpaca-Cleaned
+            </a>{' '}
+            dataset only. The Alpaca-Cleaned dataset is a curated and refined version of Stanford's original Alpaca instruction-following dataset, hosted on Hugging Face.
+            Results and task-mixture compositions shown here are based on this limited dataset scope.
+          </p>
+        </div>
       </div>
 
       <ProgressIndicator
@@ -285,7 +317,7 @@ export const Optimization: React.FC = () => {
               >
                 <option value="">Select</option>
                 {modelOptions.map(m => (
-                  <option key={m} value={m}>{m}</option>
+                  <option key={m} value={m}>{modelDisplayNames[m] || m}</option>
                 ))}
               </select>
             </div>

@@ -39,7 +39,8 @@ export const Sampling: React.FC = () => {
   const [modalItems, setModalItems] = useState<Array<{ assignment: InstructionAssignment; row: DatasetRow }>>([]);
   const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
   // UI-only states for Model-centric visual controls
-  const [targetModel, setTargetModel] = useState<string>('llama-3.2-1b-instruct');
+  const [availableModels, setAvailableModels] = useState<Array<{ key: string; label: string }>>([]);
+  const [targetModel, setTargetModel] = useState<string>('');
   const [modelDifficulty, setModelDifficulty] = useState<'lv' | 'hv' | 'mix' | null>(null);
   const [pValue, setPValue] = useState<number>(50);
   const [isScoring, setIsScoring] = useState<boolean>(false);
@@ -64,29 +65,59 @@ export const Sampling: React.FC = () => {
 
       const total = dataset.data.length;
       const updatedRows = dataset.data.map(row => ({ ...row }));
+      const inputs = updatedRows.map(row => String(row[inputKey] || ''));
       let successCount = 0;
 
-      for (let i = 0; i < total; i++) {
-        const inputVal = String(updatedRows[i][inputKey] || '');
-        try {
-          const res = await fetch(`/v1/model-centric/${targetModel}/variability/extract`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ inputs: inputVal }),
-          });
-          if (!res.ok) throw new Error('Bad response');
-          const json = await res.json();
-          const score = json?.data?.dec_score;
-          if (typeof score === 'number') {
-            updatedRows[i]['dec_score'] = score;
-            successCount += 1;
-          } else {
-            updatedRows[i]['dec_score'] = 0;
+      // SSE 스트리밍 배치 요청
+      const res = await fetch(`/v1/model-centric/${targetModel}/variability/batch-extract`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inputs }),
+      });
+
+      if (!res.ok || !res.body) {
+        throw new Error('Bad response');
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        let eventType = '';
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            eventType = line.slice(7).trim();
+          } else if (line.startsWith('data: ')) {
+            const data = JSON.parse(line.slice(6));
+
+            if (eventType === 'progress') {
+              const { index, dec_score, completed } = data;
+              if (typeof dec_score === 'number') {
+                updatedRows[index]['dec_score'] = dec_score;
+                successCount += 1;
+              } else {
+                updatedRows[index]['dec_score'] = 0;
+              }
+              setScoreProgress(Math.round((completed / total) * 100));
+            } else if (eventType === 'done') {
+              // 최종 결과로 누락 보정
+              const scores: number[] = data.dec_scores;
+              scores.forEach((s: number, i: number) => {
+                if (updatedRows[i]['dec_score'] === undefined) {
+                  updatedRows[i]['dec_score'] = s ?? 0;
+                }
+              });
+            }
           }
-        } catch (err) {
-          updatedRows[i]['dec_score'] = 0;
         }
-        setScoreProgress(Math.round(((i + 1) / total) * 100));
       }
 
       const updatedColumns = Array.isArray(dataset.columns)
@@ -112,6 +143,25 @@ export const Sampling: React.FC = () => {
       navigate('/');
     }
   }, [dataset, domainAnalysis, navigate]);
+
+  // 모델 목록을 API에서 가져오기
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        const res = await fetch('/v1/model-centric/models');
+        if (!res.ok) throw new Error('Failed to fetch models');
+        const json = await res.json();
+        const models: Array<{ key: string; label: string }> = json?.data ?? [];
+        setAvailableModels(models);
+        if (models.length > 0 && !targetModel) {
+          setTargetModel(models[0].key);
+        }
+      } catch {
+        setAvailableModels([]);
+      }
+    };
+    fetchModels();
+  }, []);
 
   useEffect(() => {
     generateSample();
@@ -800,7 +850,9 @@ export const Sampling: React.FC = () => {
               onChange={(e) => setTargetModel(e.target.value)}
               className="flex-1 max-w-md px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
             >
-              <option value="llama-3.2-1b-instruct">llama-3.2-1b-instruct</option>
+              {availableModels.map((m) => (
+                <option key={m.key} value={m.key}>{m.label}</option>
+              ))}
             </select>
             <Button onClick={calculateScores} loading={isScoring} disabled={isScoring} className="whitespace-nowrap">
               <Activity className="w-4 h-4 mr-2" />
