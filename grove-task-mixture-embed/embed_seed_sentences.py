@@ -18,7 +18,8 @@ from pymilvus import (
 # Prefer environment variable OPENAI_API_KEY; fallback to OPENAI_API_KEY_INLINE if provided.
 # OPENAI_API_KEY_INLINE = os.getenv("OPENAI_API_KEY_INLINE", "")
 # OPENAI_API_KEY = "os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY_INLINE"
-OPENAI_API_KEY = "sk-proj-1234567890"
+OPENAI_API_KEY_INLINE = os.getenv("OPENAI_API_KEY_INLINE", "")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY_INLINE
 
 # OpenAI embedding model and endpoint
 OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")

@@ -1,0 +1,36 @@
+# Git
+.git/
+.gitignore
+.DS_Store
+
+# Documentation
+*.md
+!README.md
+
+# Excluded directories
+pages/
+grove-task-mixture-embed/
+milvus_v2.6.2-docker-compose/
+
+# Build artifacts
+**/node_modules/
+**/.gradle/
+**/build/
+**/dist/
+**/target/
+**/__pycache__/
+**/venv/
+**/env/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Logs
+**/*.log
+
+# Environment
+.env
+.env.local
+*.local
