@@ -11,7 +11,7 @@ export const Docs: React.FC = () => {
             <div className="text-sm font-semibold text-gray-800">기능 안내</div>
             <ul className="mt-3 space-y-2 text-sm">
               <li><a href="/docs/grove" className="block px-2 py-1 rounded hover:bg-gray-50 text-gray-700">WEAVE-GROVE (Dataset Visualization & Selection)</a></li>
-              <li><a href="/docs/mixture" className="block px-2 py-1 rounded hover:bg-gray-50 text-gray-700">WEAVE-TASK MIXTURE (Optimized Task-Mixture Design)</a></li>
+              <li><a href="/docs/mixture" className="block px-2 py-1 rounded hover:bg-gray-50 text-gray-700">WEAVE-MOSS (Mixture Optimization for Structured Subtasks)</a></li>
               <li><a href="/docs/zebra" className="block px-2 py-1 rounded hover:bg-gray-50 text-gray-700">WEAVE-ZEBRA (Automatic Data Binarization)</a></li>
             </ul>
           </nav>
