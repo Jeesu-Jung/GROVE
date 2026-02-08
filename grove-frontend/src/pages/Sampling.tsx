@@ -7,7 +7,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts';
-import { Download, Shuffle, Target, Copy, ArrowUp, ArrowDown, Activity, Info } from 'lucide-react';
+import { Download, Shuffle, Target, Copy, ArrowUp, ArrowDown, Activity, Info, AlertTriangle } from 'lucide-react';
 import { Card } from '../components/UI/Card';
 import { Button } from '../components/UI/Button';
 import { useAppStore } from '../store/useAppStore';
@@ -47,6 +47,7 @@ export const Sampling: React.FC = () => {
   const [scoreProgress, setScoreProgress] = useState<number>(0);
   const [hasScore, setHasScore] = useState<boolean>(false);
   const [isTooltipActive, setIsTooltipActive] = useState<boolean>(false);
+  const [scoreError, setScoreError] = useState<string | null>(null);
 
   // Scores must be calculated explicitly each session
 
@@ -57,11 +58,12 @@ export const Sampling: React.FC = () => {
       if (!dataset) return;
       const inputKey = dataset.inputColumn || '';
       if (!inputKey) {
-        setError('Input column is not specified.');
+        setScoreError('Input column is not specified.');
         return;
       }
       setIsScoring(true);
       setScoreProgress(0);
+      setScoreError(null);
 
       const total = dataset.data.length;
       const updatedRows = dataset.data.map(row => ({ ...row }));
@@ -129,10 +131,10 @@ export const Sampling: React.FC = () => {
         setHasScore(true);
       } else {
         setHasScore(false);
-        alert('점수 계산에 실패했습니다. 서버 상태를 확인해 주세요.');
+        setScoreError('Score calculation failed. Please check the server status.');
       }
     } catch (e) {
-      setError('Failed to calculate scores');
+      setScoreError('Failed to calculate scores. Please check the server status.');
     } finally {
       setIsScoring(false);
     }
@@ -847,7 +849,14 @@ export const Sampling: React.FC = () => {
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Target Model:</span>
             <select
               value={targetModel}
-              onChange={(e) => setTargetModel(e.target.value)}
+              onChange={(e) => {
+                setTargetModel(e.target.value);
+                // 모델 변경 시 진행률·점수·에러·난이도 초기화
+                setScoreProgress(0);
+                setHasScore(false);
+                setScoreError(null);
+                setModelDifficulty(null);
+              }}
               className="flex-1 max-w-md px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
             >
               {availableModels.map((m) => (
@@ -880,6 +889,20 @@ export const Sampling: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Score error alert (섹션 내부) */}
+          {scoreError && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <span className="flex-1">{scoreError}</span>
+              <button
+                onClick={() => setScoreError(null)}
+                className="ml-auto text-red-400 hover:text-red-600 dark:hover:text-red-200 font-bold"
+              >
+                ×
+              </button>
+            </div>
+          )}
 
           {/* Difficulty options with radio (single-select) */}
           <div className="grid md:grid-cols-3 gap-4">

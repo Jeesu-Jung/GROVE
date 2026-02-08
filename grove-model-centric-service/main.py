@@ -25,9 +25,9 @@ MODEL_REGISTRY: dict[str, str] = {
     "llama-3.2-1b-instruct": "meta-llama/Llama-3.2-1B-Instruct",  # hf auth login 으로 사전 인증 필요
     "qwen2.5-0.5b-instruct": "Qwen/Qwen2.5-0.5B-Instruct",
     "qwen3-0.6b": "Qwen/Qwen3-0.6B",
-    "qwen2.5-3b-instruct": "Qwen/Qwen2.5-3B-Instruct",
+    # "qwen2.5-3b-instruct": "Qwen/Qwen2.5-3B-Instruct",
     "qwen2.5-1.5b-instruct": "Qwen/Qwen2.5-1.5B-Instruct",
-    "qwen2.5-7b-instruct": "Qwen/Qwen2.5-7B-Instruct",
+    # "qwen2.5-7b-instruct": "Qwen/Qwen2.5-7B-Instruct",
     "exaone-4.0-1.2b": "LGAI-EXAONE/EXAONE-4.0-1.2B",
     "gemma-2b-it": "google/gemma-2b-it",
 }
