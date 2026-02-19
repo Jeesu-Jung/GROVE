@@ -23,10 +23,10 @@ import { exportToJSON, exportToCSV } from '../utils/dataProcessing';
 import { LLMModel, DatasetRow, InstructionAssignment } from '../types';
 
 const MODELS: { id: LLMModel; name: string; provider: string }[] = [
-  { id: 'claude-sonnet-4-20250514', name: 'Claude 4 Sonnet', provider: 'Anthropic' },
-  { id: 'claude-opus-4-20250514', name: 'Claude 4 Opus', provider: 'Anthropic' },
-  // { id: 'claude-sonnet-4-5-20250929', name: 'Claude 4.5 Sonnet', provider: 'Anthropic' },
-  // { id: 'claude-opus-4-6', name: 'Claude 4.6 Opus', provider: 'Anthropic' },
+  // { id: 'claude-sonnet-4-20250514', name: 'Claude 4 Sonnet', provider: 'Anthropic' },
+  // { id: 'claude-opus-4-20250514', name: 'Claude 4 Opus', provider: 'Anthropic' },
+  { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', provider: 'Anthropic' },
+  { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', provider: 'Anthropic' },
   { id: 'gpt-5.2', name: 'GPT-5.2', provider: 'OpenAI' },
   { id: 'gpt-5.2-codex', name: 'GPT-5.2 Codex', provider: 'OpenAI' },
   { id: 'gpt-5.1-codex-mini', name: 'GPT-5.1 Codex Mini', provider: 'OpenAI' },
