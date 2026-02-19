@@ -19,21 +19,20 @@ class LlmService(
     @Cacheable(
         cacheManager = "jsonCacheInfinity",
         cacheNames = ["openai"],
-        key = "#body.model + '|' + T(io.jeesu.grovecacheservice.infrastructure.util.HashUtil).Companion.generateKey(#body.messages[0].content) + '|' + #body.max_tokens + '|' + #body.max_completion_tokens"
+        key = "#body.model + '|' + T(io.jeesu.grovecacheservice.infrastructure.util.HashUtil).Companion.generateKey(#body.input) + '|' + #body.max_output_tokens"
     )
-    fun openaiChatCompletions(body: GPTDto.ChatCompletionsRequest, authorization: String?): OpenAIClientDto.Response {
+    fun openaiResponses(body: GPTDto.ResponsesRequest, authorization: String?): OpenAIClientDto.Response {
         if (authorization.isNullOrEmpty()) throw IllegalArgumentException("API 키가 필요합니다")
 
         val req = OpenAIClientDto.Request(
             model = body.model,
-            messages = body.messages.map { OpenAIClientDto.ChatMessage(role = it.role, content = it.content) },
-            temperature = body.temperature ?: 1.0,
-            max_tokens = if (!body.model.startsWith("gpt-5")) body.max_tokens else null,
-            max_completion_tokens = if (body.model.startsWith("gpt-5")) body.max_completion_tokens else null
+            input = body.input,
+            instructions = body.instructions,
+            max_output_tokens = body.max_output_tokens
         )
 
         try {
-            return openAIClient.chatCompletions(authorization, req)
+            return openAIClient.responses(authorization, req)
         } catch (e: Exception) {
             throw RuntimeException("외부 API 호출 실패")
         }

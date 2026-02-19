@@ -28,8 +28,8 @@ const MODELS: { id: LLMModel; name: string; provider: string }[] = [
   // { id: 'claude-sonnet-4-5-20250929', name: 'Claude 4.5 Sonnet', provider: 'Anthropic' },
   // { id: 'claude-opus-4-6', name: 'Claude 4.6 Opus', provider: 'Anthropic' },
   { id: 'gpt-5.2', name: 'GPT-5.2', provider: 'OpenAI' },
-  // { id: 'gpt-5.2-codex', name: 'GPT-5.2 Codex', provider: 'OpenAI' },
-  // { id: 'gpt-5.1-codex-mini', name: 'GPT-5.1 Codex Mini', provider: 'OpenAI' },
+  { id: 'gpt-5.2-codex', name: 'GPT-5.2 Codex', provider: 'OpenAI' },
+  { id: 'gpt-5.1-codex-mini', name: 'GPT-5.1 Codex Mini', provider: 'OpenAI' },
   { id: 'gpt-5-mini', name: 'GPT-5 Mini', provider: 'OpenAI' },
   { id: 'gpt-5-nano', name: 'GPT-5 Nano', provider: 'OpenAI' },
 ];

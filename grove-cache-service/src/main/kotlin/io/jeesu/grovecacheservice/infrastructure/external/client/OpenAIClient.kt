@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.RequestHeader
 
 @FeignClient(name = "openai", url = "https://api.openai.com", configuration = [])
 interface OpenAIClient {
-    @PostMapping("/v1/chat/completions")
-    fun chatCompletions(
+    @PostMapping("/v1/responses")
+    fun responses(
         @RequestHeader("Authorization") authorization: String,
         @RequestBody body: OpenAIClientDto.Request
     ): OpenAIClientDto.Response

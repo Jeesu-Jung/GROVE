@@ -3,25 +3,15 @@ package io.jeesu.grovecacheservice.infrastructure.external.dto
 import com.fasterxml.jackson.annotation.JsonInclude
 
 class OpenAIClientDto {
-    data class ChatMessage(
-        val role: String,
-        val content: String
-    )
-
-    data class ChatChoiceMessage(
-        val role: String,
-        val content: String
-    )
-
     @JsonInclude(JsonInclude.Include.NON_NULL)
     data class Request(
         val model: String,
-        val messages: List<ChatMessage>,
-        val temperature: Double? = 1.0,
-        val max_tokens: Int? = null,
-        val max_completion_tokens: Int? = null
+        val input: String,
+        val instructions: String? = null,
+        val max_output_tokens: Int? = null
     )
 
-    data class ResponseChoice(val index: Int, val message: ChatChoiceMessage)
-    data class Response(val choices: List<ResponseChoice>)
+    data class OutputText(val type: String, val text: String)
+    data class OutputContent(val type: String, val role: String? = null, val content: List<OutputText>? = null)
+    data class Response(val output: List<OutputContent>)
 }

@@ -136,30 +136,17 @@ export class LLMService {
   }
 
   private async callOpenAIAPI(prompt: string): Promise<string> {
-    const isGpt5 = this.model.startsWith('gpt-5');
-    const payload: any = {
-      model: this.model,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      temperature: 1,
-    };
-    if (isGpt5) {
-      payload.max_completion_tokens = 4000;
-    } else {
-      payload.max_tokens = 4000;
-    }
-
-    const response = await fetch('/v1/chat/completions', {
+    const response = await fetch('/v1/responses', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${this.apiKey}`,
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        model: this.model,
+        input: prompt,
+        max_output_tokens: 4000,
+      }),
     });
 
     if (!response.ok) {
@@ -167,7 +154,8 @@ export class LLMService {
     }
 
     const data = await response.json();
-    return data.choices[0].message.content;
+    const messageOutput = data.output.find((o: any) => o.type === 'message');
+    return messageOutput.content[0].text;
   }
 
   // legacy batch parser removed in favor of single-response parser

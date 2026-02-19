@@ -18,16 +18,16 @@ import org.springframework.web.bind.annotation.RestController
 class LlmController(
     private val llmService: LlmService
 ) {
-    @PostMapping("/v1/chat/completions")
-    fun chatCompletions(
-        @RequestBody body: GPTDto.ChatCompletionsRequest,
+    @PostMapping("/v1/responses")
+    fun openAIResponses(
+        @RequestBody body: GPTDto.ResponsesRequest,
         @RequestHeader(AUTHORIZATION, required = false) authorization: String?
     ): ResponseEntity<OpenAIClientDto.Response> {
-        if (body.model.isBlank() || body.messages.isEmpty()) {
+        if (body.model.isBlank() || body.input.isBlank()) {
             return ResponseEntity.badRequest().build()
         }
         return try {
-            val response = llmService.openaiChatCompletions(body, authorization)
+            val response = llmService.openaiResponses(body, authorization)
             ResponseEntity.ok(response)
         } catch (e: IllegalArgumentException) {
             ResponseEntity.badRequest().build()

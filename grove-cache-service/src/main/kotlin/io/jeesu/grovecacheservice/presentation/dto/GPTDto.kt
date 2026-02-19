@@ -1,16 +1,13 @@
 package io.jeesu.grovecacheservice.presentation.dto
 
-class GPTDto {
-    data class ChatCompletionsMessage(
-        val role: String,
-        val content: String
-    )
+import com.fasterxml.jackson.annotation.JsonInclude
 
-    data class ChatCompletionsRequest(
+class GPTDto {
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    data class ResponsesRequest(
         val model: String,
-        val messages: List<ChatCompletionsMessage>,
-        val temperature: Double? = null,
-        val max_tokens: Int? = null,
-        val max_completion_tokens: Int? = null
+        val input: String,
+        val instructions: String? = null,
+        val max_output_tokens: Int? = null
     )
 }

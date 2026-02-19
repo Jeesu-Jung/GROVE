@@ -21,7 +21,7 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
-      '/v1/chat/completions': {
+      '/v1/responses': {
         target: 'http://localhost:8080',
         // target: 'https://api.openai.com',
         changeOrigin: true,
