@@ -33,7 +33,14 @@ docker compose version
 
 ## Quick Start
 
-### 1. Configure Environment Variables
+### 1. Download Required Files
+
+```bash
+curl -O https://raw.githubusercontent.com/Jeesu-Jung/weave/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/Jeesu-Jung/weave/main/.env.example
+```
+
+### 2. Configure Environment Variables
 
 ```bash
 # Copy .env.example to .env
@@ -43,7 +50,7 @@ cp .env.example .env
 ```
 [Environment Variables Guide](#environment-variables)
 
-### 2. Run the Full Stack
+### 3. Run the Full Stack
 
 ```bash
 # Build and run all services (including Milvus + Redis)
@@ -56,7 +63,7 @@ docker compose logs -f
 docker compose ps
 ```
 
-### 3. Initialize Data (Embedding)
+### 4. Initialize Data (Embedding)
 
 Run once with **optional profiles** to populate embedding data in Milvus (OpenAI API costs may apply).
 
@@ -68,7 +75,7 @@ docker compose --profile embed run --rm grove-task-mixture-embed
 docker compose --profile ingest run --rm weavy-ingest
 ```
 
-### 4. Access Services
+### 5. Access Services
 
 ### Web Interfaces
 

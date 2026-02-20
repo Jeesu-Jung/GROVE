@@ -30,7 +30,14 @@ docker compose version
 
 ## 빠른 시작
 
-### 1. 환경변수 설정
+### 1. 필요 파일 다운로드
+
+```bash
+curl -O https://raw.githubusercontent.com/Jeesu-Jung/weave/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/Jeesu-Jung/weave/main/.env.example
+```
+
+### 2. 환경변수 설정
 
 ```bash
 # .env.example 파일을 .env로 복사
@@ -40,7 +47,7 @@ cp .env.example .env
 ```
 [환경변수 가이드](#환경변수-설정)
 
-### 2. 전체 스택 실행
+### 3. 전체 스택 실행
 
 ```bash
 # 모든 서비스 빌드 및 실행 (Milvus + Redis 포함)
@@ -53,7 +60,7 @@ docker compose logs -f
 docker compose ps
 ```
 
-### 3. 데이터 초기화 (임베딩)
+### 4. 데이터 초기화 (임베딩)
 
 Milvus에 임베딩 데이터를 넣기 위해 **옵션 프로필**로 1회 실행합니다 (OpenAI 비용이 발생할 수 있습니다).
 
@@ -65,7 +72,7 @@ docker compose --profile embed run --rm grove-task-mixture-embed
 docker compose --profile ingest run --rm weavy-ingest
 ```
 
-### 4. 서비스 접속
+### 5. 서비스 접속
 
 ### 웹 인터페이스
 
