@@ -111,9 +111,7 @@ services:
   # ============================================
 
   grove-task-mixture-embed:
-    build:
-      context: ./grove-task-mixture-embed
-      dockerfile: Dockerfile
+    image: jongunkim/grove-task-mixture-embed:v0.0.1
     container_name: grove-task-mixture-embed
     profiles: ["embed"]
     environment:
@@ -162,9 +160,7 @@ services:
   # ============================================
 
   grove-cache-service:
-    build:
-      context: ./grove-cache-service
-      dockerfile: Dockerfile
+    image: jongunkim/grove-cache-service:v0.0.1
     container_name: grove-cache-service
     ports:
       - "${CACHE_SERVICE_PORT:-8080}:8080"
@@ -185,9 +181,7 @@ services:
       - grove-network
 
   grove-task-mixture-service:
-    build:
-      context: ./grove-task-mixture-service
-      dockerfile: Dockerfile
+    image: jongunkim/grove-task-mixture-service:v0.0.1
     container_name: grove-task-mixture-service
     ports:
       - "${TASK_MIXTURE_PORT:-8081}:8081"
@@ -212,9 +206,7 @@ services:
       - grove-network
 
   grove-zebra-service:
-    build:
-      context: ./grove-zebra-service
-      dockerfile: Dockerfile
+    image: jongunkim/grove-zebra-service:v0.0.1
     container_name: grove-zebra-service
     ports:
       - "${ZEBRA_SERVICE_PORT:-8082}:8082"
@@ -229,9 +221,7 @@ services:
       - grove-network
 
   grove-model-centric-service:
-    build:
-      context: ./grove-model-centric-service
-      dockerfile: Dockerfile
+    image: jongunkim/grove-model-centric-service:v0.0.1
     container_name: grove-model-centric-service
     ports:
       - "${MODEL_CENTRIC_PORT:-8083}:8083"
@@ -252,9 +242,7 @@ services:
       - grove-network
 
   weavy:
-    build:
-      context: ./weavy
-      dockerfile: Dockerfile
+    image: jongunkim/grove-weavy:v0.0.1
     container_name: grove-weavy
     ports:
       - "${WEAVY_PORT:-8084}:8084"
@@ -281,9 +269,7 @@ services:
   # ============================================
 
   grove-frontend:
-    build:
-      context: ./grove-frontend
-      dockerfile: Dockerfile
+    image: jongunkim/grove-frontend:v0.0.1
     container_name: grove-frontend
     ports:
       - "${FRONTEND_PORT:-80}:80"
